@@ -70,3 +70,11 @@ Native architecture is now renderer → preload IPC → Electron main → authen
 - No new runtime dependencies. Daemon client does not load node-pty in Electron main. Native child uses matching Electron Node mode.
 
 The daemon is deliberately not an OS service and does not resurrect shells after daemon/OS death. Windows/Linux execution is not claimed. A crashed launcher's uncertain startup lock requires verified manual recovery rather than blind deletion.
+
+Final verification after the independent review fixes:
+
+- TypeScript and clean library build pass; 25 host/transport/daemon tests pass.
+- Both browser journeys pass. The packaged CLI executes a real local command, and the isolated TypeScript/React consumer builds successfully.
+- Standalone native archive passes fresh-cache installation, native rebuild, renderer build and both Electron tests on macOS arm64. The screenshot above now shows the recovered session after a full application restart.
+- The review reproduced two defects before correction: the Electron bootstrap environment flag leaked into interactive shells, and a shell ignoring SIGHUP survived explicit shutdown. The daemon now clears the bootstrap flag before creating its host; session disposal waits for exit and escalates to SIGKILL after a bounded grace period. Shutdown errors remain visible and retryable. Both regressions pass, including shell termination before shutdown acknowledges success.
+- No deferred review findings. Version 0.1.3 library/native archives were rebuilt. Work stays on the local codex/terminal-toolkit branch; no new push or registry publication was performed.

@@ -29,24 +29,24 @@
 Files: new src/daemon/{index,metadata,wire,client,server,entry,launcher}.ts; tests/daemon.test.ts; package exports/build.
 Interfaces: ensureTerminalDaemon({runtimeDir,hostOptions?,executablePath?,startupTimeoutMs?}) → Promise<DaemonClient>; connectTerminalDaemon(runtimeDir) → Promise<DaemonClient>. DaemonClient implements TerminalTransport, ready(), dispose(), shutdown(), info(). Info includes daemon PID/instance/protocol, never token in renderer.
 
-- [ ] Add real-process integration tests for persistent session variables/PID/output, concurrent launch, invalid authentication, config mismatch, dead daemon replacement and explicit shutdown. Run and observe missing implementation failure.
-- [ ] Implement private runtime metadata and unique short endpoints, bounded newline framing, authenticated global serialized dispatch, detach cleanup, child bootstrap IPC and startup lock. Implement client request/event/status ownership.
-- [ ] Run daemon tests, typecheck and existing unit suite; fix failures; commit.
+- [x] Add real-process integration tests for persistent session variables/PID/output, concurrent launch, invalid authentication, config mismatch, dead daemon replacement and explicit shutdown. Run and observe missing implementation failure.
+- [x] Implement private runtime metadata and unique short endpoints, bounded newline framing, authenticated global serialized dispatch, detach cleanup, child bootstrap IPC and startup lock. Implement client request/event/status ownership.
+- [x] Run daemon tests, typecheck and existing unit suite; fix failures; commit.
 
 ## Task 2 — Native restart integration
 
 Files: examples/electron/main.cjs, terminal-ipc.mjs, preload.cjs if needed, src/ipc-transport.ts, README; tests/electron.spec.ts.
 Interfaces: main uses ensureTerminalDaemon with userData/terminal-daemon and process.execPath; bridge consumes TerminalTransport and disconnects on app quit. Main menu can shutdown explicitly; renderer never exposes administrative shutdown/token/config.
 
-- [ ] Change native regression to close/reopen application with the same userData and assert same daemon/shell PID, shell variable, buffered output and normal command execution. Observe failure against old lifecycle.
-- [ ] Convert IPC bridge to transport proxy with frame validation and reload fences. Main owns daemon connection only. Add explicit stop-and-quit menu and status propagation. Native fixture verifies hidden launch, rename/split/reload and final process exit.
-- [ ] Build actual tarball, install/rebuild isolated sample, run native regression; commit.
+- [x] Change native regression to close/reopen application with the same userData and assert same daemon/shell PID, shell variable, buffered output and normal command execution. Observe failure against old lifecycle.
+- [x] Convert IPC bridge to transport proxy with frame validation and reload fences. Main owns daemon connection only. Add explicit stop-and-quit menu and status propagation. Native fixture verifies hidden launch, rename/split/reload and final process exit.
+- [x] Build actual tarball, install/rebuild isolated sample, run native regression; commit.
 
 ## Task 3 — Distribution and final verification
 
 Files: package version and example tarball paths, README/docs/integration/docs/verification, package-verification script as needed.
 
-- [ ] Document normal quit vs stop, architecture, short endpoint/private runtime, stale-lock recovery, config matching, and unsupported OS/daemon restart persistence.
-- [ ] Run pnpm check, browser journeys, packaged consumer and standalone native archive verification; inspect native screenshot.
-- [ ] Obtain one independent fresh-context whole-change review while checking packaged output. Fix actionable findings with reproduced regressions; no repeated review loop.
-- [ ] Commit final source/docs, retain local branch and updated archives; report results and limitations. Existing publication request was completed earlier; do not infer a new release/publication action.
+- [x] Document normal quit vs stop, architecture, short endpoint/private runtime, stale-lock recovery, config matching, and unsupported OS/daemon restart persistence.
+- [x] Run pnpm check, browser journeys, packaged consumer and standalone native archive verification; inspect native screenshot.
+- [x] Obtain one independent fresh-context whole-change review while checking packaged output. Fix actionable findings with reproduced regressions; no repeated review loop.
+- [x] Commit final source/docs, retain local branch and updated archives; report results and limitations. Existing publication request was completed earlier; do not infer a new release/publication action.

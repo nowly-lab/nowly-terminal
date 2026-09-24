@@ -30,6 +30,12 @@ export class Session {
   private disposed = false;
   private subscriptions: pty.IDisposable[] = [];
   private exitCode: number | undefined;
+  private exited = false;
+  private resolveExit!: () => void;
+  private processExit = new Promise<void>((resolve) => {
+    this.resolveExit = resolve;
+  });
+  private stopping: Promise<void> | undefined;
   constructor(
     readonly id: string,
     cols: number,
@@ -72,6 +78,8 @@ export class Session {
       }),
       this.process.onData((data) => this.ingest(data)),
       this.process.onExit(({ exitCode }) => {
+        this.exited = true;
+        this.resolveExit();
         void this.enqueue(() => {
           this.exitCode = exitCode;
           this.emit({ type: "exit", sessionId: id, exitCode });
@@ -177,11 +185,39 @@ export class Session {
       }
     }
   }
-  async dispose() {
-    if (this.disposed) return;
+  private async waitForExit(timeoutMs: number) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        this.processExit,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(resolve, timeoutMs);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+    return this.exited;
+  }
+  dispose(): Promise<void> {
+    return (this.stopping ??= this.stop().catch((error) => {
+      this.stopping = undefined;
+      throw error;
+    }));
+  }
+  private async stop() {
     this.disposed = true;
+    if (!this.exited) {
+      // Keep the exit subscription alive until the owned PTY has terminated.
+      // A shell can ignore SIGHUP, so explicit close has a bounded fallback.
+      this.process.kill();
+      if (!(await this.waitForExit(750))) {
+        this.process.kill("SIGKILL");
+        if (!(await this.waitForExit(1500)))
+          throw new Error(`PTY ${this.id} did not terminate`);
+      }
+    }
     for (const subscription of this.subscriptions) subscription.dispose();
-    if (this.exitCode === undefined) this.process.kill();
     await this.chain;
     this.emit({ type: "closed", sessionId: this.id });
     this.listeners.clear();

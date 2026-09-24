@@ -13,6 +13,9 @@ process.once("message", async (message: unknown) => {
       typeof hostOptions !== "object"
     )
       throw Error("Invalid daemon bootstrap");
+    // Electron needs this only to bootstrap the daemon as Node. Interactive
+    // children must be able to launch Electron applications normally.
+    delete process.env.ELECTRON_RUN_AS_NODE;
     const { startDaemon } = await import("./server.js");
     const daemon = await startDaemon(runtimeDir, hostOptions);
     for (const signal of ["SIGTERM", "SIGINT"] as const)

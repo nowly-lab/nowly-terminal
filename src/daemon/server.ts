@@ -176,6 +176,7 @@ export async function startDaemon(runtimeDir: string, options: HostOptions) {
             if (active)
               sendFrame(socket, { type: "response", requestId, result });
           } catch (error) {
+            if (method === "shutdown") closing = false;
             if (active)
               sendFrame(socket, {
                 type: "response",

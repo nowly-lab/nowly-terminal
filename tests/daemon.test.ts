@@ -156,3 +156,54 @@ test("dead daemon can be replaced; stale launch lock is not blindly removed", as
     ensureTerminalDaemon({ ...locked, startupTimeoutMs: 150 }),
   ).rejects.toThrow("launch.lock");
 });
+
+test("daemon bootstrap Node-mode flag is not inherited by interactive commands", async () => {
+  const client = await start();
+  await client.request("create", { id: "environment" });
+  await expect
+    .poll(() => screen(client, "environment"))
+    .toContain("DAEMON_READY>");
+  await client.request("write", {
+    id: "environment",
+    data: "printf 'BOOTSTRAP_%s\\n' \"${ELECTRON_RUN_AS_NODE-unset}\"\r",
+  });
+  await expect
+    .poll(() => screen(client, "environment"))
+    .toContain("BOOTSTRAP_unset");
+});
+
+test("explicit shutdown waits for and terminates a shell that ignores hangup", async () => {
+  const client = await start();
+  const daemonPid = client.info().pid;
+  const shell = await client.request("create", { id: "ignore-hup" });
+  try {
+    await expect
+      .poll(() => screen(client, shell.id))
+      .toContain("DAEMON_READY>");
+    await client.request("write", {
+      id: shell.id,
+      data: "trap '' HUP; printf 'HUP_%s\\n' ARMED\r",
+    });
+    await expect.poll(() => screen(client, shell.id)).toContain("HUP_ARMED");
+    await client.shutdown();
+    expect(() => process.kill(shell.pid, 0)).toThrow();
+    await expect
+      .poll(
+        () => {
+          try {
+            process.kill(daemonPid, 0);
+            return false;
+          } catch {
+            return true;
+          }
+        },
+        { timeout: 1500 },
+      )
+      .toBe(true);
+  } finally {
+    for (const pid of [shell.pid, daemonPid])
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {}
+  }
+});
