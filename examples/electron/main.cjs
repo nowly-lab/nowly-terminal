@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require("electron");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { homedir } = require("node:os");
@@ -17,11 +17,40 @@ app.on("window-all-closed", () => app.quit());
 app
   .whenReady()
   .then(async () => {
-    const { TerminalHost } = await import("@nowly/terminal/server");
+    const { ensureTerminalDaemon } = await import("@nowly/terminal/daemon");
     const { bindTerminalIpc } = await import("./terminal-ipc.mjs");
-    const host = new TerminalHost({
-      cwd: process.env.TERMINAL_CWD || homedir(),
+    const transport = await ensureTerminalDaemon({
+      runtimeDir: path.join(app.getPath("userData"), "terminal-daemon"),
+      executablePath: process.execPath,
+      hostOptions: { cwd: process.env.TERMINAL_CWD || homedir() },
     });
+    dispose = async () => transport.dispose();
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate([
+        {
+          label: "Nowly Terminal",
+          submenu: [
+            {
+              label: "すべてのターミナルを終了してアプリを終了",
+              id: "stop-terminals",
+              click: async () => {
+                try {
+                  await transport.shutdown();
+                  app.quit();
+                } catch (error) {
+                  dialog.showErrorBox("終了できませんでした", String(error));
+                }
+              },
+            },
+            { type: "separator" },
+            { role: "quit", label: "アプリを終了（ターミナルは維持）" },
+          ],
+        },
+        { role: "editMenu" },
+        { role: "viewMenu" },
+        { role: "windowMenu" },
+      ]),
+    );
     const window = new BrowserWindow({
       width: 1200,
       height: 800,
@@ -48,7 +77,7 @@ app
     dispose = bindTerminalIpc({
       ipcMain,
       window,
-      host,
+      transport,
       rendererUrl: pathToFileURL(file).href,
     });
     window.once("ready-to-show", () => {

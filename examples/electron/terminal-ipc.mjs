@@ -1,36 +1,55 @@
 import { validId } from "@nowly/terminal";
 
-/** Bind one trusted window to its host. Renderer reloads keep the host alive. */
-export function bindTerminalIpc({ ipcMain, window, host, rendererUrl }) {
+/** One trusted renderer forwards the public protocol; admin control stays in main. */
+export function bindTerminalIpc({ ipcMain, window, transport, rendererUrl }) {
   const channel = "nowly-terminal:request";
-  const subscriptions = new Map();
-  let generation = 0;
-  let disposed = false;
+  const statusChannel = "nowly-terminal:status";
+  const attached = new Map();
+  let generation = 0,
+    disposed = false;
   let queue = Promise.resolve();
+  const trusted = (event) =>
+    !disposed &&
+    event.sender === window.webContents &&
+    event.senderFrame === window.webContents.mainFrame &&
+    event.senderFrame.url === rendererUrl;
+  const send = (channel, payload) => {
+    if (!disposed && !window.webContents.isDestroyed())
+      window.webContents.send(channel, payload);
+  };
+  const offEvents = transport.subscribe((event) => {
+    if (attached.get(event.sessionId) === generation)
+      send("nowly-terminal:event", event);
+  });
+  const offStatus = transport.onStatus((status) => send(statusChannel, status));
   const reset = () => {
     generation++;
-    for (const off of subscriptions.values()) off();
-    subscriptions.clear();
+    const ids = [...attached.keys()];
+    attached.clear();
+    queue = queue.then(async () => {
+      for (const id of ids)
+        try {
+          await transport.request("detach", { id });
+        } catch {}
+    });
   };
   const navigated = (_event, _url, _inPlace, mainFrame) => {
     if (mainFrame) reset();
   };
   window.webContents.on("did-start-navigation", navigated);
   window.webContents.once("destroyed", reset);
+  ipcMain.handle(statusChannel, (event) => {
+    if (!trusted(event)) throw Error("Untrusted terminal sender");
+    return transport.status;
+  });
   ipcMain.handle(channel, (event, method, params) => {
-    if (
-      disposed ||
-      event.sender !== window.webContents ||
-      event.senderFrame !== window.webContents.mainFrame ||
-      event.senderFrame.url !== rendererUrl
-    )
-      throw new Error("Untrusted terminal sender");
+    if (!trusted(event)) throw Error("Untrusted terminal sender");
     const requestedGeneration = generation;
     const run = async () => {
-      if (disposed || generation !== requestedGeneration)
-        throw new Error("Terminal view replaced");
+      if (disposed || requestedGeneration !== generation)
+        throw Error("Terminal view replaced");
       if (!params || typeof params !== "object" || Array.isArray(params))
-        throw new Error("Invalid terminal parameters");
+        throw Error("Invalid terminal parameters");
       if (
         ![
           "create",
@@ -42,48 +61,26 @@ export function bindTerminalIpc({ ipcMain, window, host, rendererUrl }) {
           "close",
         ].includes(method)
       )
-        throw new Error("Unsupported terminal method");
+        throw Error("Unsupported terminal method");
       if (method !== "list") validId(params.id);
-      switch (method) {
-        case "create":
-          return host.create({
-            id: params.id,
-            cols: params.cols,
-            rows: params.rows,
-          });
-        case "list":
-          return host.list();
-        case "attach": {
-          subscriptions.get(params.id)?.();
-          subscriptions.delete(params.id);
-          const off = await host.attach(params.id, (payload) => {
-            if (
-              !disposed &&
-              generation === requestedGeneration &&
-              !window.webContents.isDestroyed()
-            )
-              window.webContents.send("nowly-terminal:event", payload);
-          });
-          if (disposed || generation !== requestedGeneration) off();
-          else subscriptions.set(params.id, off);
-          return null;
+      if (method === "attach") {
+        attached.set(params.id, requestedGeneration);
+        try {
+          const result = await transport.request(method, params);
+          if (disposed || generation !== requestedGeneration) {
+            attached.delete(params.id);
+            await transport.request("detach", { id: params.id });
+          }
+          return result;
+        } catch (error) {
+          attached.delete(params.id);
+          throw error;
         }
-        case "detach":
-          subscriptions.get(params.id)?.();
-          subscriptions.delete(params.id);
-          return null;
-        case "write":
-          host.write(params.id, params.data, params.encoding);
-          return null;
-        case "resize":
-          await host.resize(params.id, params.cols, params.rows);
-          return null;
-        case "close":
-          await host.close(params.id);
-          subscriptions.get(params.id)?.();
-          subscriptions.delete(params.id);
-          return null;
       }
+      if (method === "detach") attached.delete(params.id);
+      const result = await transport.request(method, params);
+      if (method === "close") attached.delete(params.id);
+      return result;
     };
     const next = queue.then(run);
     queue = next.catch(() => {});
@@ -91,11 +88,15 @@ export function bindTerminalIpc({ ipcMain, window, host, rendererUrl }) {
   });
   return async () => {
     disposed = true;
+    generation++;
+    attached.clear();
+    offEvents();
+    offStatus();
     ipcMain.removeHandler(channel);
-    reset();
+    ipcMain.removeHandler(statusChannel);
     if (!window.webContents.isDestroyed())
       window.webContents.removeListener("did-start-navigation", navigated);
+    transport.dispose();
     await queue;
-    await host.dispose();
   };
 }

@@ -1,9 +1,16 @@
 import { test, expect, _electron as electron } from "@playwright/test";
-import { mkdtempSync, writeFileSync, rmSync, copyFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  writeFileSync,
+  rmSync,
+  copyFileSync,
+  readFileSync,
+} from "node:fs";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createRequire } from "node:module";
+import { connectTerminalDaemon } from "../src/daemon/index.js";
 
 test("native packaged terminal initializes shell, isolates renderer and restores live sessions", async () => {
   const fixture = mkdtempSync(join(tmpdir(), "terminal-native-"));
@@ -31,14 +38,16 @@ test("native packaged terminal initializes shell, isolates renderer and restores
   const example = resolve(
     process.env.TERMINAL_NATIVE_EXAMPLE ?? "examples/electron",
   );
-  const app = await electron.launch({
-    executablePath: createRequire(join(example, "package.json"))("electron"),
-    args: [example],
-    env,
-  });
+  const launch = () =>
+    electron.launch({
+      executablePath: createRequire(join(example, "package.json"))("electron"),
+      args: [example],
+      env,
+    });
+  let app = await launch();
   let ownedPids: number[] = [];
   try {
-    const page = await app.firstWindow();
+    let page = await app.firstWindow();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await expect(page.locator('[data-terminal-state="running"]')).toHaveCount(
@@ -53,7 +62,7 @@ test("native packaged terminal initializes shell, isolates renderer and restores
     ).toEqual({
       node: "undefined",
       process: "undefined",
-      keys: ["request", "subscribe"],
+      keys: ["request", "subscribe", "onStatus"],
     });
     await page.getByRole("tab").first().dblclick();
     await page
@@ -101,6 +110,9 @@ test("native packaged terminal initializes shell, isolates renderer and restores
         (window as any).terminal.request("write", { id: "bad/id", data: "x" }),
       ),
     ).rejects.toThrow("Invalid session id");
+    await expect(
+      page.evaluate(() => (window as any).terminal.request("shutdown", {})),
+    ).rejects.toThrow("Unsupported");
     await page.getByRole("button", { name: "Split right" }).click();
     await expect(page.locator('[data-terminal-state="running"]')).toHaveCount(
       2,
@@ -113,15 +125,66 @@ test("native packaged terminal initializes shell, isolates renderer and restores
       original.pid,
     );
     await expect.poll(screen).toContain("NATIVE_EXECUTED");
-    ownedPids = (await sessions()).map(
-      (session: { pid: number }) => session.pid,
+    const runtimeDir = join(fixture, "app", "terminal-daemon");
+    const daemon = JSON.parse(
+      readFileSync(join(runtimeDir, "daemon.json"), "utf8"),
     );
+    expect(daemon.pid).not.toBe(app.process().pid);
+    await page.evaluate(
+      (id) =>
+        (window as any).terminal.request("write", {
+          id,
+          data: "export APP_RESTART_VALUE=preserved; (sleep .3; printf 'APP_OFFLINE_%s\\n' OUTPUT) &\r",
+        }),
+      original.id,
+    );
+    await app.close();
+    expect(() => process.kill(original.pid, 0)).not.toThrow();
+    expect(() => process.kill(daemon.pid, 0)).not.toThrow();
+    app = await launch();
+    page = await app.firstWindow();
+    page.on("pageerror", (e) => errors.push(e.message));
+    await expect(page.locator('[data-terminal-state="running"]')).toHaveCount(
+      2,
+    );
+    expect((await sessions()).find((s: any) => s.id === original.id).pid).toBe(
+      original.pid,
+    );
+    await expect(page.getByRole("tab", { name: "Native shell" })).toBeVisible();
+    await expect.poll(screen).toContain("APP_OFFLINE_OUTPUT");
+    await page.evaluate(
+      (id) =>
+        (window as any).terminal.request("write", {
+          id,
+          data: "printf 'APP_VALUE_%s\\n' \"$APP_RESTART_VALUE\"\r",
+        }),
+      original.id,
+    );
+    await expect.poll(screen).toContain("APP_VALUE_preserved");
+    ownedPids = [
+      daemon.pid,
+      ...(await sessions()).map((session: { pid: number }) => session.pid),
+    ];
     await page.screenshot({ path: "test-results/native-terminal.png" });
     expect(errors).toEqual([]);
     await page.getByRole("button", { name: "Close pane" }).first().click();
     await expect.poll(async () => (await sessions()).length).toBe(1);
+    await app.evaluate(({ Menu }) => {
+      void Menu.getApplicationMenu()!
+        .getMenuItemById("stop-terminals")!
+        .click();
+    });
+    await expect.poll(() => app.process().exitCode).toBe(0);
   } finally {
-    await app.close();
+    await app.close().catch(() => {});
+    try {
+      const daemon = await connectTerminalDaemon(
+        join(fixture, "app", "terminal-daemon"),
+      );
+      ownedPids.push(daemon.info().pid);
+      await daemon.shutdown();
+      daemon.dispose();
+    } catch {}
     await expect
       .poll(() =>
         ownedPids.every((pid) => {

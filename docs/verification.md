@@ -60,3 +60,13 @@ Implementation decisions and rollback notes:
 - Retired only the verified stale pyenv runtime lock, preserving a backup at the path above. To undo, stop rehash processes first and restore that backup; no `.zshrc` or other shell configuration was edited.
 
 All final review findings were fixed. No deferred review findings. Work remains on the local `codex/terminal-toolkit` branch.
+
+## Persistent native daemon — 0.1.3
+
+Native architecture is now renderer → preload IPC → Electron main → authenticated local socket → detached daemon → PTY. This supersedes the 0.1.2 sample's main-process host and quit-time shell termination. Ordinary quit preserves sessions; explicit Stop terminals shuts them down.
+
+- Real-process daemon tests: detach/reconnect preserves PID, variables and offline output; concurrent launches reuse one daemon; configuration mismatch is rejected; wrong tokens/malformed frames cannot create sessions; dead daemon replacement and stale launch-lock refusal work.
+- Hidden Electron restart test passes: close the application, verify shell/daemon still alive, relaunch with the same userData, recover the same PID/layout/variables/output, and execute another command. Existing profile, isolation, rename, split and reload checks remain.
+- No new runtime dependencies. Daemon client does not load node-pty in Electron main. Native child uses matching Electron Node mode.
+
+The daemon is deliberately not an OS service and does not resurrect shells after daemon/OS death. Windows/Linux execution is not claimed. A crashed launcher's uncertain startup lock requires verified manual recovery rather than blind deletion.

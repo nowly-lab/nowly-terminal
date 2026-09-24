@@ -48,7 +48,9 @@ function App() {
         />
       </section>
       <footer>
-        <span>設定の読み込みが終わると、プロンプトが表示されます。</span>
+        <span>
+          アプリを閉じてもターミナルは動き続け、再起動時に復帰します。
+        </span>
         <span>Ctrl+C で中断 · ⌘R で画面を再読み込み</span>
       </footer>
     </main>
