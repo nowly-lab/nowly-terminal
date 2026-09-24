@@ -7,7 +7,7 @@ export interface ServerOptions {token:string;allowedOrigins:string[];port?:numbe
 export async function createTerminalServer(options:ServerOptions){
  if(!options.token)throw new Error('A nonempty token is required');
  const host=new TerminalHost(options.hostOptions);
- const http=createServer((_req,res)=>{res.writeHead(404);res.end();});
+ const http=createServer((req,res)=>{res.writeHead(req.url==='/health'?200:404,{'Content-Type':'text/plain'});res.end(req.url==='/health'?'ok':'');});
  const wss=new WebSocketServer({noServer:true,maxPayload:128*1024,perMessageDeflate:false});
  http.on('upgrade',(req,socket,head)=>{
   if(req.url!=='/terminal'||(req.headers.origin&&!options.allowedOrigins.includes(req.headers.origin))){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}
@@ -26,7 +26,7 @@ export async function createTerminalServer(options:ServerOptions){
   socket.on('close',()=>{closed=true;clearTimeout(timeout);for(const unsubscribe of subscriptions.values())unsubscribe();subscriptions.clear();});
   socket.on('message',(raw,binary)=>{
    if(binary){socket.close(1008,'JSON text frames required');return;}
-   const length=raw.length;queuedBytes+=length;
+   const length=Buffer.byteLength(raw.toString());queuedBytes+=length;
    if(queuedBytes>1024*1024){socket.close(1008,'Request queue exceeded');return;}
    queue=queue.then(async()=>{
     queuedBytes-=length;if(closed)return;
