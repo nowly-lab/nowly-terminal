@@ -10,7 +10,7 @@ export function startDemoHost() {
     ],
     hostOptions: {
       cwd: process.cwd(),
-      shellProfile: process.argv.includes("--user-shell") ? "user" : "clean",
+      shellProfile: process.argv.includes("--clean-shell") ? "clean" : "user",
       ...(process.env.TERMINAL_DEMO_SHELL
         ? { shell: process.env.TERMINAL_DEMO_SHELL }
         : {}),

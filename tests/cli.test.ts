@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { parseCliOptions } from "../src/cli-options.js";
-test("serve uses explicit authentication, loopback, clean shell and cwd", () => {
+test("serve uses explicit authentication, loopback, initialized user shell and cwd", () => {
   expect(
     parseCliOptions(
       [
@@ -21,7 +21,7 @@ test("serve uses explicit authentication, loopback, clean shell and cwd", () => 
       token: "test-only",
       port: 9090,
       allowedOrigins: ["http://localhost:3000"],
-      hostOptions: { cwd: "/tmp/project", shellProfile: "clean" },
+      hostOptions: { cwd: "/tmp/project", shellProfile: "user" },
     },
   });
 });

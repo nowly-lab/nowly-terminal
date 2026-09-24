@@ -35,3 +35,47 @@ test.skipIf(!existsSync("/bin/zsh"))(
     }
   },
 );
+
+test.skipIf(!existsSync("/bin/zsh"))(
+  "default zsh initializes login PATH and interactive aliases",
+  async () => {
+    const dir = mkdtempSync(join(tmpdir(), "terminal-login-"));
+    writeFileSync(
+      join(dir, ".zprofile"),
+      `export TERMINAL_LOGIN_VALUE=login_loaded\nexport PATH="${dir}:$PATH"\n`,
+    );
+    writeFileSync(
+      join(dir, ".zshrc"),
+      "alias terminal_profile_alias='printf ALIAS_WORKS'\nPS1='PROFILE_READY> '\n",
+    );
+    const host = new TerminalHost({
+      shell: "/bin/zsh",
+      cwd: dir,
+      env: { ZDOTDIR: dir },
+    });
+    try {
+      host.create({ id: "normal" });
+      await expect
+        .poll(async () => (await host.snapshot("normal")).ansi)
+        .toContain("PROFILE_READY>");
+      host.write(
+        "normal",
+        "printf '%s\\n' \"$TERMINAL_LOGIN_VALUE\"; terminal_profile_alias; print -r -- $PATH\r",
+      );
+      await expect
+        .poll(async () => (await host.snapshot("normal")).ansi)
+        .toContain("ALIAS_WORKS");
+      const screen = (await host.snapshot("normal")).ansi;
+      expect(screen).toContain("login_loaded");
+      expect(screen).toContain(dir + ":");
+    } finally {
+      await host.dispose();
+      rmSync(dir, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
+    }
+  },
+);

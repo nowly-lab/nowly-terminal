@@ -3,12 +3,17 @@ export function shellProfileArgs(
   shell: string,
   profile: ShellProfile,
 ): string[] {
-  if (profile === "user") return [];
   const name = shell
     .split(/[\\/]/)
     .at(-1)
     ?.toLowerCase()
     .replace(/\.exe$/, "");
+  if (profile === "user") {
+    if (["zsh", "bash", "fish", "sh", "dash"].includes(name ?? ""))
+      return ["-il"];
+    if (name === "pwsh" || name === "powershell") return ["-NoLogo"];
+    return [];
+  }
   switch (name) {
     case "zsh":
       return ["-f"];

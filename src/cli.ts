@@ -9,7 +9,7 @@ Set TERMINAL_TOKEN in the environment. Tokens are never printed or put in URLs.
   --origin <origin>     Allow this exact browser origin (repeatable)
   --cwd <directory>     Shell working directory (default: current directory)
   --shell <executable>  Shell executable (default: operating-system shell)
-  --profile clean|user Skip user startup files or load them (default: clean)
+  --profile clean|user Skip user startup files or load them (default: user)
   --help               Show this help
 
 Example: nowly-terminal serve --origin http://localhost:3000

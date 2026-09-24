@@ -15,7 +15,7 @@ export function parseCliOptions(
     token: env.TERMINAL_TOKEN ?? "",
     port: 5187,
     allowedOrigins: [],
-    hostOptions: { cwd, shellProfile: "clean" },
+    hostOptions: { cwd, shellProfile: "user" },
   };
   for (let i = 1; i < args.length; i += 2) {
     const key = args[i],

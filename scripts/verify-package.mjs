@@ -94,7 +94,7 @@ import {validId} from '@nowly/terminal';
 validId('consumer');assert.equal(typeof TerminalHost,'function');
 assert.match(import.meta.resolve('@nowly/terminal/styles.css'),/styles.css$/);
 const secret=randomBytes(24).toString('hex');
-const child=spawn(process.execPath,['node_modules/@nowly/terminal/dist/cli.js','serve','--port','0','--origin','http://localhost:3000'],{env:{...process.env,TERMINAL_TOKEN:secret},stdio:['ignore','pipe','pipe']});
+const child=spawn(process.execPath,['node_modules/@nowly/terminal/dist/cli.js','serve','--profile','clean','--port','0','--origin','http://localhost:3000'],{env:{...process.env,TERMINAL_TOKEN:secret},stdio:['ignore','pipe','pipe']});
 let log='',errors='';child.stdout.on('data',data=>log+=data);child.stderr.on('data',data=>errors+=data);
 const exit=new Promise(resolve=>child.once('exit',code=>resolve(code)));
 let client;
