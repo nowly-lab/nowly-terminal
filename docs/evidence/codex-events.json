@@ -1,0 +1,124 @@
+{
+  "verifiedAt": "2026-09-24T11:55:42.085Z",
+  "transport": "Codex TUI + private Unix app-server",
+  "task": "Read two numbers; delegate one addition; wait and report 42",
+  "events": [
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 1,
+      "timestamp": "2026-09-24T11:55:23.420Z",
+      "kind": "session.started",
+      "threadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 2,
+      "timestamp": "2026-09-24T11:55:23.453Z",
+      "kind": "task.started",
+      "threadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-35b5-7d60-b21a-6d2a783a93e2",
+      "status": "started"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 3,
+      "timestamp": "2026-09-24T11:55:30.872Z",
+      "kind": "subagent.spawned",
+      "threadId": "01a0d345-526c-7ad3-9031-1a39b3cf67e6",
+      "parentThreadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 4,
+      "timestamp": "2026-09-24T11:55:30.877Z",
+      "kind": "subagent.started",
+      "threadId": "01a0d345-526c-7ad3-9031-1a39b3cf67e6",
+      "parentThreadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-52b6-7c22-9858-a6b0d99b30dd",
+      "status": "started"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 5,
+      "timestamp": "2026-09-24T11:55:34.901Z",
+      "kind": "tool.started",
+      "threadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-35b5-7d60-b21a-6d2a783a93e2",
+      "itemId": "exec-fdf0aa80-5cb1-43a9-a083-80b16df8a5ed",
+      "tool": "commandExecution",
+      "status": "inProgress"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 6,
+      "timestamp": "2026-09-24T11:55:34.901Z",
+      "kind": "tool.completed",
+      "threadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-35b5-7d60-b21a-6d2a783a93e2",
+      "itemId": "exec-fdf0aa80-5cb1-43a9-a083-80b16df8a5ed",
+      "tool": "commandExecution",
+      "status": "completed"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 7,
+      "timestamp": "2026-09-24T11:55:35.726Z",
+      "kind": "subagent.completed",
+      "threadId": "01a0d345-526c-7ad3-9031-1a39b3cf67e6",
+      "parentThreadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-52b6-7c22-9858-a6b0d99b30dd",
+      "status": "completed"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 8,
+      "timestamp": "2026-09-24T11:55:39.495Z",
+      "kind": "tool.started",
+      "threadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-35b5-7d60-b21a-6d2a783a93e2",
+      "itemId": "call_6cT0uRWA2YAZQM48dMd6M1iX",
+      "tool": "wait",
+      "status": "inProgress"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 9,
+      "timestamp": "2026-09-24T11:55:39.497Z",
+      "kind": "tool.completed",
+      "threadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-35b5-7d60-b21a-6d2a783a93e2",
+      "itemId": "call_6cT0uRWA2YAZQM48dMd6M1iX",
+      "tool": "wait",
+      "status": "completed"
+    },
+    {
+      "type": "agent",
+      "provider": "codex",
+      "sessionId": "codex-smoke",
+      "sequence": 10,
+      "timestamp": "2026-09-24T11:55:41.955Z",
+      "kind": "task.completed",
+      "threadId": "01a0d345-3535-7ae3-a6fd-797f8e5dcabc",
+      "turnId": "01a0d345-35b5-7d60-b21a-6d2a783a93e2",
+      "status": "completed"
+    }
+  ]
+}

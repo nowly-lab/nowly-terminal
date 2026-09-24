@@ -120,8 +120,50 @@ Browser E2E explicitly uses clean mode on 5196/5197. Native E2E uses normal mode
 
 ## Packaged CLI
 
-The npm package `@nowly/terminal@0.1.3` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
+The npm package `@nowly/terminal@0.2.0` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
 
 The CLI defaults to normal login/interactive startup; `--profile clean` explicitly skips optional startup configuration. `--shell` picks the shell executable. Ctrl+C closes sockets and owned sessions. The CLI is a backend entry point; mount the browser or React exports in the embedding application for the UI.
 
 `pnpm pack` runs a clean build automatically, including declarations and CSS. `pnpm test:package` packs, installs into an isolated temporary project, launches the packaged CLI, runs a real local command through WebSocket/PTY, checks shutdown, type-checks a consumer without skipping dependency declarations, and builds its React/CSS bundle. No npm publication or registry credentials are required.
+
+## Codex terminal profile and events
+
+Use Codex CLI installed on the host and its existing login. Verified with codex-cli 0.155.1 on macOS arm64. The [official app-server protocol](https://learn.chatgpt.com/docs/app-server) is experimental. The optional profile currently requires POSIX Unix sockets; Windows Codex embedding is not implemented. No additional runtime dependency is required.
+
+```ts
+const transport = await ensureTerminalDaemon({
+  runtimeDir: '/absolute/app-data/codex-terminal-daemon',
+  executablePath: process.execPath, // Electron main
+  hostOptions: {
+    cwd: '/absolute/project',
+    codex: {
+      executable: 'codex', // resolved using the initialized shell PATH
+      // prompt: 'Summarize this directory without editing files.',
+      // sandbox: 'read-only', approvalPolicy: 'on-request',
+    },
+  },
+});
+transport.subscribe(event => {
+  if (event.type === 'agent') {
+    if (event.kind === 'task.completed') console.log('Task done', event.threadId, event.turnId);
+    if (event.kind === 'subagent.completed') console.log('Child done', event.threadId, event.parentThreadId);
+  }
+  if (event.type === 'snapshot') {
+    console.log('Recent events', event.snapshot.agentEvents ?? []);
+  }
+});
+await transport.request('create', {id: 'coding'});
+await transport.request('attach', {id: 'coding'});
+```
+
+The existing native IPC bridge forwards these events; no new renderer privilege is needed. In React, add `<AgentActivity transport={transport} />` from `@nowly/terminal/react` beside `TerminalWorkspace`. A renderer must attach to the session (TerminalWorkspace already does this) to receive its live events.
+
+HostOptions.codex accepts executable, args (trusted CLI configuration arguments), optional initial prompt, sandbox (read-only/workspace-write), approvalPolicy (on-request/never), and startupTimeoutMs. Arguments are individually quoted; they are not renderer-controlled shell snippets. The optional initial prompt runs once when a new session is created, never on attach/reload. Omit sandbox/approvalPolicy to keep the user's Codex settings. This integration does not approve requests or alter hook trust; normal Codex prompts remain in the TUI.
+
+Architecture: renderer → existing IPC → terminal daemon → PTY → real Codex TUI. The TUI communicates through a private0700 Unix socket directory (socket0600); a transparent WebSocket-to-stdio proxy connects its dedicated Codex app-server. No TCP listener is opened. Codex creates its own thread; the adapter does not attempt to resume an empty pre-created thread. Login initialization output is separated from JSON protocol stdout. Explicit terminal close stops the sidecar process group; ordinary renderer/app disconnect leaves it running with the PTY.
+
+Each agent event contains provider=codex, sessionId, sequence, timestamp, kind and threadId (empty before initialization failure), with optional parentThreadId, turnId, itemId, tool and status. Kinds: session.started; task.started/completed/failed/interrupted; subagent.spawned/started/completed/failed/interrupted; tool.started/completed; connection.failed. Completion means a Codex turn completed, independently of PTY exit. Tool completion carries status and does not automatically mean success. Only descendants proven by Codex thread metadata/collaboration events are included. Unrecognized notifications never imply completion.
+
+The daemon stores the most recent200 agent events per terminal. On snapshot, replace that terminal's replay window and deduplicate live events by sessionId+sequence. Sequence is independent of terminal output sequence and resets with a new terminal instance. This is an in-memory bounded event feed, not a durable exactly-once queue. Persist the events in your application if a full audit history is required. Prompts, raw tool results, plugin definitions and credentials are not copied into the agent event feed. The TUI necessarily receives its normal protocol content. Backend frames are bounded at64MiB to accommodate large Codex plugin catalogs; event metadata remains small.
+
+Version0.2.0 changes direct `TerminalHost.create` to return Promise<SessionInfo>. Await it before writing, attaching or inspecting sessions. The transport API was already asynchronous and is unchanged. `pnpm test:codex` explicitly runs a real read-only model task with one delegated child; it is not part of the normal unit test suite. `NOWLY_LIVE_CODEX=1 pnpm test:native --grep 'live Codex'` verifies the actual native UI.

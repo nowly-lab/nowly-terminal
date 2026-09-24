@@ -72,7 +72,7 @@ export class WebSocketTransport implements TerminalTransport {
           request.reject(new Error(message.error));
         else request.resolve(message.result);
       } else if (
-        ["snapshot", "data", "resize", "exit", "closed"].includes(
+        ["snapshot", "data", "resize", "exit", "closed", "agent"].includes(
           String(message.type),
         ) &&
         typeof message.sessionId === "string"
@@ -102,7 +102,7 @@ export class WebSocketTransport implements TerminalTransport {
     }
     this.pending.clear();
   }
-  ready(timeoutMs = this.options.requestTimeoutMs ?? 10000): Promise<void> {
+  ready(timeoutMs = this.options.requestTimeoutMs ?? 30000): Promise<void> {
     if (this.status === "ready") return Promise.resolve();
     if (this.status === "disposed")
       return Promise.reject(new Error("Transport disposed"));

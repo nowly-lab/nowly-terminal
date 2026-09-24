@@ -9,6 +9,15 @@ export function startDemoHost() {
       `http://localhost:${uiPort}`,
     ],
     hostOptions: {
+      ...(process.env.TERMINAL_PROGRAM === "codex"
+        ? {
+            codex: {
+              ...(process.env.TERMINAL_CODEX_PROMPT
+                ? { prompt: process.env.TERMINAL_CODEX_PROMPT }
+                : {}),
+            },
+          }
+        : {}),
       cwd: process.cwd(),
       shellProfile: process.argv.includes("--clean-shell") ? "clean" : "user",
       ...(process.env.TERMINAL_DEMO_SHELL

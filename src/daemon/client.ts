@@ -80,7 +80,7 @@ export class DaemonClient implements TerminalTransport {
         return;
       }
       if (
-        ["snapshot", "data", "resize", "exit", "closed"].includes(
+        ["snapshot", "data", "resize", "exit", "closed", "agent"].includes(
           String(frame.type),
         ) &&
         typeof frame.sessionId === "string"
@@ -133,7 +133,7 @@ export class DaemonClient implements TerminalTransport {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
         () => this.fail(Error("Daemon request timeout")),
-        10000,
+        method === "create" ? 30000 : 10000,
       );
       this.pending.set(requestId, { resolve, reject, timer });
       if (

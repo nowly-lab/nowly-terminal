@@ -1,6 +1,6 @@
 {
   "name": "@nowly/terminal",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "type": "module",
   "license": "MIT",
   "description": "Embeddable PTY terminal toolkit inspired by Orca",
@@ -61,7 +61,8 @@
     "native": "node scripts/run-electron.mjs",
     "test:native": "playwright test --config playwright.electron.config.ts",
     "native:pack": "node scripts/pack-native.mjs",
-    "test:native-package": "node scripts/verify-native.mjs"
+    "test:native-package": "node scripts/verify-native.mjs",
+    "test:codex": "pnpm build && node scripts/verify-codex.mjs"
   },
   "dependencies": {
     "@xterm/addon-fit": "0.12.0-beta.300",

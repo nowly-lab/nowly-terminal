@@ -118,7 +118,7 @@ export async function startDaemon(runtimeDir: string, options: HostOptions) {
             const id = params.id as string;
             switch (method) {
               case "create":
-                result = host.create({
+                result = await host.create({
                   id,
                   cols: params.cols,
                   rows: params.rows,

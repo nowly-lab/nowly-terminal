@@ -14,10 +14,40 @@ export interface SessionInfo {
   exitCode?: number;
 }
 export interface Snapshot extends SessionInfo {
+  agentEvents?: AgentEvent[];
   ansi: string;
   sequence: number;
 }
+export type AgentEventKind =
+  | "session.started"
+  | "task.started"
+  | "task.completed"
+  | "task.failed"
+  | "task.interrupted"
+  | "subagent.spawned"
+  | "subagent.started"
+  | "subagent.completed"
+  | "subagent.failed"
+  | "subagent.interrupted"
+  | "tool.started"
+  | "tool.completed"
+  | "connection.failed";
+export interface AgentEvent {
+  type: "agent";
+  provider: "codex";
+  sessionId: string;
+  sequence: number;
+  timestamp: string;
+  kind: AgentEventKind;
+  threadId: string;
+  parentThreadId?: string;
+  turnId?: string;
+  itemId?: string;
+  tool?: string;
+  status?: string;
+}
 export type TerminalEvent =
+  | AgentEvent
   | { type: "snapshot"; sessionId: string; snapshot: Snapshot }
   | { type: "data"; sessionId: string; data: string; sequence: number }
   | { type: "resize"; sessionId: string; cols: number; rows: number }

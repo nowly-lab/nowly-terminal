@@ -19,10 +19,29 @@ app
   .then(async () => {
     const { ensureTerminalDaemon } = await import("@nowly/terminal/daemon");
     const { bindTerminalIpc } = await import("./terminal-ipc.mjs");
+    const codex = process.env.TERMINAL_PROGRAM !== "shell";
     const transport = await ensureTerminalDaemon({
-      runtimeDir: path.join(app.getPath("userData"), "terminal-daemon"),
+      runtimeDir: path.join(
+        app.getPath("userData"),
+        codex ? "terminal-daemon-codex" : "terminal-daemon",
+      ),
       executablePath: process.execPath,
-      hostOptions: { cwd: process.env.TERMINAL_CWD || homedir() },
+      hostOptions: {
+        cwd: process.env.TERMINAL_CWD || (codex ? process.cwd() : homedir()),
+        ...(codex
+          ? {
+              codex: {
+                executable: process.env.TERMINAL_CODEX_EXECUTABLE || "codex",
+                args: process.env.TERMINAL_CODEX_ARGS
+                  ? JSON.parse(process.env.TERMINAL_CODEX_ARGS)
+                  : [],
+                ...(process.env.TERMINAL_CODEX_PROMPT
+                  ? { prompt: process.env.TERMINAL_CODEX_PROMPT }
+                  : {}),
+              },
+            }
+          : {}),
+      },
     });
     dispose = async () => transport.dispose();
     Menu.setApplicationMenu(
@@ -74,16 +93,18 @@ app
     );
     window.webContents.session.setPermissionCheckHandler(() => false);
     const file = path.join(__dirname, "dist/index.html");
+    const rendererUrl = pathToFileURL(file);
+    rendererUrl.searchParams.set("program", codex ? "codex" : "shell");
     dispose = bindTerminalIpc({
       ipcMain,
       window,
       transport,
-      rendererUrl: pathToFileURL(file).href,
+      rendererUrl: rendererUrl.href,
     });
     window.once("ready-to-show", () => {
       if (process.env.TERMINAL_EXAMPLE_BACKGROUND !== "1") window.show();
     });
-    await window.loadFile(file);
+    await window.loadURL(rendererUrl.href);
   })
   .catch(async (error) => {
     const message =

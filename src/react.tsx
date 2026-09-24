@@ -71,3 +71,5 @@ export {
   type WorkspaceLayout,
 } from "./workspace.js";
 export type { TerminalHandle, MountTerminalOptions } from "./browser.js";
+
+export { AgentActivity } from "./agent-activity.js";

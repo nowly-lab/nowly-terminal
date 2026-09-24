@@ -205,3 +205,42 @@
   background: #101419;
   font: inherit;
 }
+
+.nt-agent-activity {
+  margin-top: 16px;
+  padding: 16px;
+  background: #151a22;
+  border: 1px solid #303846;
+  border-radius: 12px;
+  color: #dce4ef;
+  font: 13px system-ui;
+}
+.nt-agent-activity h2 {
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 10px;
+}
+.nt-agent-activity h2 span,
+.nt-agent-activity time,
+.nt-agent-activity li > span {
+  color: #8fa0b5;
+}
+.nt-agent-activity ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 180px;
+  overflow: auto;
+}
+.nt-agent-activity li {
+  display: flex;
+  gap: 14px;
+  padding: 5px 0;
+}
+.nt-agent-activity [data-agent-kind$="completed"] strong {
+  color: #8fceb1;
+}
+.nt-agent-activity [data-agent-kind$="failed"] strong {
+  color: #ff9999;
+}

@@ -127,7 +127,7 @@ export async function createTerminalServer(options: ServerOptions) {
             switch (message.method) {
               case "create": {
                 validSize(p.cols ?? 80, p.rows ?? 24);
-                result = host.create({
+                result = await host.create({
                   id,
                   cols: Number(p.cols ?? 80),
                   rows: Number(p.rows ?? 24),

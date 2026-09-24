@@ -1,7 +1,11 @@
 import { StrictMode, useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { WebSocketTransport } from "../../src/client.js";
-import { TerminalWorkspace, type WorkspaceLayout } from "../../src/react.js";
+import {
+  AgentActivity,
+  TerminalWorkspace,
+  type WorkspaceLayout,
+} from "../../src/react.js";
 import "../../src/styles.css";
 import "./page.css";
 const transport = new WebSocketTransport({
@@ -60,6 +64,7 @@ function App() {
           onLayoutChange={save}
         />
       </div>
+      <AgentActivity transport={transport} />
       <footer>
         <span>
           作業場所: nowly-terminal · Ctrl+C でコマンドを中断できます。

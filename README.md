@@ -19,7 +19,7 @@ pnpm dev
 
 ## ネイティブアプリのサンプル
 
-Orcaと同じElectronの構成で、メインプロセスがローカルソケットで専用の常駐プロセスへ接続し、そのプロセスがPTYを所有します。React画面はpreloadのIPCを使います。WebSocketサーバーを起動せず、ローカルコマンドを実行できます。
+Orcaと同じElectronの構成で、メインプロセスがローカルソケットで専用の常駐プロセスへ接続し、そのプロセスがPTYを所有します。React画面はpreloadのIPCを使います。TCPポートを開かず、ローカルコマンドを実行できます。Codexモードでは、専用app-serverとの通信にUnixソケット上のWebSocketフレームを使います。
 
 ```sh
 pnpm native:setup # パッケージ作成・別依存環境へインストール・Electron用の再ビルド
@@ -28,7 +28,7 @@ pnpm native       # ネイティブウィンドウを起動
 
 通常のアプリ終了ではシェルを保持し、再起動時に同じPID・変数・出力へ復帰します。ペインの×はそのシェルを終了し、アプリメニューの「すべてのターミナルを終了してアプリを終了」で常駐プロセスごと停止します。
 
-[組み込みサンプルと手順](examples/electron/README.md)。実パッケージだけをimportし、Orcaやこのリポジトリのsrcには依存しません。`pnpm native:pack` でサンプルソースとライブラリtgzをまとめた `nowly-terminal-native-example-0.1.3.tgz` を作れます。
+[組み込みサンプルと手順](examples/electron/README.md)。実パッケージだけをimportし、Orcaやこのリポジトリのsrcには依存しません。`pnpm native:pack` でサンプルソースとライブラリtgzをまとめた `nowly-terminal-native-example-0.2.0.tgz` を作れます。
 
 ## 他のアプリで使う
 
@@ -37,7 +37,7 @@ pnpm native       # ネイティブウィンドウを起動
 ```sh
 pnpm pack  # 配布前に自動ビルドされます
 # 組み込み先のプロジェクトで
-pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.3.tgz
+pnpm add /path/to/nowly-terminal/nowly-terminal-0.2.0.tgz
 ```
 
 インストール済みパッケージには `nowly-terminal` コマンドも含まれます。サーバー用コードを書かずに、次のように起動できます。
@@ -131,3 +131,11 @@ pnpm exec vite build --config examples/react/vite.config.ts
 配布パッケージには、コンパイル済みコード、型定義、CSS、起動CLI、組み込みガイドを含みます。デモやテストコード、Orca本体は不要です。ESM対応のNode.js 22以上、React UIはReact 18以上を対象にしています。
 
 元実装の出典とライセンスは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+
+## Codexの起動とイベント取得
+
+ネイティブサンプルは標準でCodexを起動します。Codex CLIをインストールし、ログイン済みの環境で `pnpm native:setup` → `pnpm native` を実行してください。通常のシェルに切り替える場合は `TERMINAL_PROGRAM=shell pnpm native`。ブラウザデモは `TERMINAL_PROGRAM=codex pnpm dev` でCodexモードになります。
+
+タスク開始・完了・失敗・中断、ツール実行、子エージェントの起動・完了を `transport.subscribe` で取得できます。画面下の履歴も同じイベントを利用します。実機でローカルファイル読み取り→子エージェントに足し算を委任→完了まで確認した[取得記録](docs/evidence/codex-events.json)と、[組み込みAPI](docs/integration.md#codex-terminal-profile-and-events)を参照してください。
+
+0.2.0では直接利用する `TerminalHost.create()` が非同期になりました。`await host.create({id: 'terminal'})` に更新してください。transport.requestの呼び方は変わりません。

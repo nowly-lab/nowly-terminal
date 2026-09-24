@@ -8,7 +8,7 @@
 
 ## 配布されたサンプルを起動
 
-`nowly-terminal-native-example-0.1.3.tgz` を展開し、その中の `examples/electron` で:
+`nowly-terminal-native-example-0.2.0.tgz` を展開し、その中の `examples/electron` で:
 
 ```sh
 npm install
@@ -17,7 +17,7 @@ npm run rebuild
 npm start
 ```
 
-展開したディレクトリ構成を保ってください。2階層上にある `nowly-terminal-0.1.3.tgz` が依存先です。`ELECTRON_RUN_AS_NODE` を設定している特殊な環境では、起動前に解除してください。
+展開したディレクトリ構成を保ってください。2階層上にある `nowly-terminal-0.2.0.tgz` が依存先です。`ELECTRON_RUN_AS_NODE` を設定している特殊な環境では、起動前に解除してください。
 
 ## 他のアプリへ組み込む場所
 
@@ -42,3 +42,11 @@ npm start
 macOS arm64 / Electron 43.7.0で確認しています。ルートの `pnpm test:native` は非表示ウィンドウで起動し、ログイン設定・対話設定・コマンド入力・権限制限・分割・タブ名変更・再読み込み・起動失敗時の案内を検証します。`pnpm test:native-package` はサンプル配布ファイルを新しいディレクトリへ展開し、空のnpmキャッシュでのインストールから実行テストまで確認します。
 
 これはネイティブで動作するソースサンプルです。署名済みインストーラーは作りません。アプリをパッケージ化するときはnode-ptyのネイティブバイナリとspawn-helperをASARの外へ配置し、実行権限を保持してください。対象OS/CPUごとのネイティブビルドが必要です。
+
+## Codex mode (0.2.0)
+
+The sample now starts the real Codex TUI by default. Install/login to Codex CLI first; its usual model, shell PATH and interactive approvals are retained. Set TERMINAL_CWD to the project directory. Set TERMINAL_PROGRAM=shell for the ordinary shell sample. Codex and shell use separate daemon runtime directories and saved layouts.
+
+Optional host-side environment settings: TERMINAL_CODEX_EXECUTABLE (default codex), TERMINAL_CODEX_ARGS (JSON array of CLI arguments), TERMINAL_CODEX_PROMPT (initial prompt, only for newly created terminals). Do not pass secrets in initial prompts or command arguments. The event panel shows task/child/tool lifecycle events; no screen scraping is used.
+
+The Codex app-server is connected through a private Unix WebSocket-to-stdio bridge. No TCP port is opened. Terminal close disposes both PTY and its dedicated Codex process group; app quit preserves them. This profile was verified on macOS with Codex CLI0.155.1. Windows Codex mode is not supported by this sample.

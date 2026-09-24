@@ -16,7 +16,7 @@ test("snapshot boundary and subsequent live output have contiguous sequence", as
     ],
   });
   try {
-    host.create({ id: "boundary" });
+    await host.create({ id: "boundary" });
     await expect
       .poll(async () => (await host.snapshot("boundary")).ansi)
       .toContain("BEFORE");
@@ -48,7 +48,7 @@ test("restored DEC line drawing state continues across reconnect", async () => {
     args: ["-e", `process.stdout.write('\\x1b(0q');setTimeout(()=>{},10000)`],
   });
   try {
-    host.create({ id: "charset" });
+    await host.create({ id: "charset" });
     await expect
       .poll(async () => (await host.snapshot("charset")).ansi)
       .toContain("─");
@@ -78,7 +78,7 @@ test.each([
       ],
     });
     try {
-      host.create({ id: "state" });
+      await host.create({ id: "state" });
       await expect
         .poll(async () => (await host.snapshot("state")).ansi)
         .toContain("X");

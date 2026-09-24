@@ -28,6 +28,7 @@ test("native packaged terminal initializes shell, isolates renderer and restores
         (entry): entry is [string, string] => entry[1] !== undefined,
       ),
     ),
+    TERMINAL_PROGRAM: "shell",
     ZDOTDIR: fixture,
     SHELL: "/bin/zsh",
     TERMINAL_CWD: fixture,
@@ -237,6 +238,126 @@ test("native initialization failure reports rebuild guidance and exits unsuccess
     expect(errors).toContain("npm run rebuild");
   } finally {
     rmSync(failure, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
+  }
+});
+
+test("Codex profile launches PTY and restores structured activity after reload", async () => {
+  const fixture = mkdtempSync(join(tmpdir(), "codex-native-"));
+  const example = resolve(
+    process.env.TERMINAL_NATIVE_EXAMPLE ?? "examples/electron",
+  );
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    TERMINAL_PROGRAM: "codex",
+    TERMINAL_CWD: fixture,
+    SHELL: "/bin/sh",
+    TERMINAL_EXAMPLE_BACKGROUND: "1",
+    TERMINAL_EXAMPLE_USER_DATA: join(fixture, "app"),
+    TERMINAL_CODEX_EXECUTABLE: process.execPath,
+    TERMINAL_CODEX_ARGS: JSON.stringify([
+      resolve("tests/fixtures/codex-server.mjs"),
+    ]),
+  };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: createRequire(join(example, "package.json"))("electron"),
+    args: [example],
+    env: env as Record<string, string>,
+  });
+  try {
+    const page = await app.firstWindow();
+    await expect(page.locator('[data-agent-kind="task.started"]')).toHaveCount(
+      1,
+    );
+    await page.reload();
+    await expect(page.locator('[data-agent-kind="task.started"]')).toHaveCount(
+      1,
+    );
+    await expect(page.locator(".nt-agent-activity")).toContainText("Codex");
+  } finally {
+    await app.close().catch(() => {});
+    try {
+      const daemon = await connectTerminalDaemon(
+        join(fixture, "app", "terminal-daemon-codex"),
+      );
+      await daemon.shutdown();
+      daemon.dispose();
+    } catch {
+    } finally {
+      rmSync(fixture, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
+    }
+  }
+});
+
+test("live Codex task and subagent events appear in the native UI", async () => {
+  test.skip(
+    process.env.NOWLY_LIVE_CODEX !== "1",
+    "Opt-in real Codex model execution",
+  );
+  test.setTimeout(180000);
+  const fixture = mkdtempSync(join(tmpdir(), "codex-live-ui-"));
+  writeFileSync(join(fixture, "numbers.txt"), "17 25\n");
+  const example = resolve(
+    process.env.TERMINAL_NATIVE_EXAMPLE ?? "examples/electron",
+  );
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    TERMINAL_PROGRAM: "codex",
+    TERMINAL_CWD: fixture,
+    TERMINAL_EXAMPLE_BACKGROUND: "1",
+    TERMINAL_EXAMPLE_USER_DATA: join(fixture, "app"),
+    TERMINAL_CODEX_ARGS: JSON.stringify([
+      "--config",
+      'sandbox_mode="read-only"',
+      "--config",
+      'approval_policy="never"',
+    ]),
+    TERMINAL_CODEX_PROMPT:
+      "Read numbers.txt with a local shell command. Delegate exactly one subagent to calculate 17 + 25. Wait for that agent, then answer exactly CODEX_CAPTURE_OK 42. This is a read-only smoke test; no file edits, connectors, web access or further agents. This explicitly authorizes the one bounded delegation.",
+  };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: createRequire(join(example, "package.json"))("electron"),
+    args: [example],
+    env: env as Record<string, string>,
+  });
+  try {
+    const page = await app.firstWindow();
+    await expect(
+      page.locator('[data-agent-kind="task.completed"]'),
+    ).toHaveCount(1, { timeout: 120000 });
+    await expect(
+      page.locator('[data-agent-kind="subagent.completed"]'),
+    ).toHaveCount(1);
+    await expect(
+      page.locator('[data-agent-kind="tool.completed"]'),
+    ).not.toHaveCount(0);
+    await page.screenshot({
+      path: "test-results/codex-native.png",
+      fullPage: true,
+    });
+    await page.reload();
+    await expect(
+      page.locator('[data-agent-kind="task.completed"]'),
+    ).toHaveCount(1);
+  } finally {
+    await app.close().catch(() => {});
+    const daemon = await connectTerminalDaemon(
+      join(fixture, "app", "terminal-daemon-codex"),
+    );
+    await daemon.shutdown();
+    daemon.dispose();
+    rmSync(fixture, {
       recursive: true,
       force: true,
       maxRetries: 5,

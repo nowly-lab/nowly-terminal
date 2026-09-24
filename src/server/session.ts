@@ -1,3 +1,5 @@
+import type { CodexRuntime } from "../codex/runtime.js";
+import type { AgentEvent } from "../protocol.js";
 import { CharsetState } from "./charset-state.js";
 import {
   serializeWithAbsoluteCursor,
@@ -41,6 +43,7 @@ export class Session {
     cols: number,
     rows: number,
     options: SpawnOptions,
+    private codex?: CodexRuntime,
   ) {
     this.terminal = new headless.Terminal({
       cols,
@@ -80,6 +83,10 @@ export class Session {
       this.process.onExit(({ exitCode }) => {
         this.exited = true;
         this.resolveExit();
+        void this.codex?.dispose().catch(() => {
+          for (const event of this.codex!.events.error())
+            this.agentEvent(event);
+        });
         void this.enqueue(() => {
           this.exitCode = exitCode;
           this.emit({ type: "exit", sessionId: id, exitCode });
@@ -130,9 +137,13 @@ export class Session {
       ...(this.exitCode !== undefined ? { exitCode: this.exitCode } : {}),
     };
   }
+  agentEvent(event: AgentEvent) {
+    if (!this.disposed) void this.enqueue(() => this.emit(event));
+  }
   private capture(): Snapshot {
     return {
       ...this.info(),
+      ...(this.codex ? { agentEvents: [...this.codex.events.history] } : {}),
       sequence: this.sequence,
       ansi:
         serializeWithAbsoluteCursor(
@@ -217,6 +228,7 @@ export class Session {
           throw new Error(`PTY ${this.id} did not terminate`);
       }
     }
+    await this.codex?.dispose();
     for (const subscription of this.subscriptions) subscription.dispose();
     await this.chain;
     this.emit({ type: "closed", sessionId: this.id });

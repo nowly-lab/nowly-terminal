@@ -16,7 +16,7 @@ test.skipIf(!existsSync("/bin/zsh"))(
       env: { ZDOTDIR: dir, PS1: "READY> " },
     });
     try {
-      host.create({ id: "clean" });
+      await host.create({ id: "clean" });
       await expect
         .poll(async () => (await host.snapshot("clean")).ansi, {
           timeout: 1000,
@@ -54,7 +54,7 @@ test.skipIf(!existsSync("/bin/zsh"))(
       env: { ZDOTDIR: dir },
     });
     try {
-      host.create({ id: "normal" });
+      await host.create({ id: "normal" });
       await expect
         .poll(async () => (await host.snapshot("normal")).ansi)
         .toContain("PROFILE_READY>");
@@ -94,7 +94,7 @@ test.skipIf(!existsSync("/bin/zsh"))(
       env: { ZDOTDIR: dir },
     });
     try {
-      host.create({ id: "query" });
+      await host.create({ id: "query" });
       await expect
         .poll(async () => (await host.snapshot("query")).ansi, {
           timeout: 3500,

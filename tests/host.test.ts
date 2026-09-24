@@ -15,8 +15,8 @@ afterEach(async () => {
 });
 test("idempotent create, real shell, resize, attach and explicit close", async () => {
   const h = host();
-  const first = h.create({ id: "one", cols: 80, rows: 24 });
-  expect(h.create({ id: "one" }).pid).toBe(first.pid);
+  const first = await h.create({ id: "one", cols: 80, rows: 24 });
+  expect((await h.create({ id: "one" })).pid).toBe(first.pid);
   expect(h.list()).toHaveLength(1);
   h.write("one", "printf '\\033[31mMARKER_%s\\033[0m\\n' OK\r");
   await expect
@@ -35,19 +35,19 @@ test("idempotent create, real shell, resize, attach and explicit close", async (
 });
 test("exit preserves screen and never implicitly respawns", async () => {
   const h = host();
-  const info = h.create({ id: "exit" });
+  const info = await h.create({ id: "exit" });
   h.write("exit", "printf 'DONE'; exit 7\r");
   await expect.poll(() => h.list()[0].status).toBe("exited");
   expect((await h.snapshot("exit")).ansi).toContain("DONE");
-  expect(h.create({ id: "exit" }).pid).toBe(info.pid);
+  expect((await h.create({ id: "exit" })).pid).toBe(info.pid);
   expect(h.list()[0].exitCode).toBe(7);
 });
-test("host limits and dimensions reject invalid work", () => {
+test("host limits and dimensions reject invalid work", async () => {
   const h = new TerminalHost({ maxSessions: 1, shell: "/bin/sh", args: [] });
   hosts.push(h);
-  expect(() => h.create({ id: "bad", cols: 0 })).toThrow();
-  h.create({ id: "good" });
-  expect(() => h.create({ id: "second" })).toThrow("limit");
+  await expect(h.create({ id: "bad", cols: 0 })).rejects.toThrow();
+  await h.create({ id: "good" });
+  await expect(h.create({ id: "second" })).rejects.toThrow("limit");
 });
 
 test("binary mouse reports preserve byte values above ASCII", async () => {
@@ -59,7 +59,7 @@ test("binary mouse reports preserve byte values above ASCII", async () => {
     ],
   });
   hosts.push(h);
-  h.create({ id: "binary" });
+  await h.create({ id: "binary" });
   await expect
     .poll(async () => (await h.snapshot("binary")).ansi)
     .toContain("READY");
@@ -67,4 +67,15 @@ test("binary mouse reports preserve byte values above ASCII", async () => {
   await expect
     .poll(async () => (await h.snapshot("binary")).ansi)
     .toContain("BYTE_128");
+});
+
+test("concurrent distinct creates use actual capacity rather than counting a pending session twice", async () => {
+  const h = new TerminalHost({ maxSessions: 2, shell: "/bin/sh", args: [] });
+  hosts.push(h);
+  const created = await Promise.all([
+    h.create({ id: "first" }),
+    h.create({ id: "second" }),
+  ]);
+  expect(created).toHaveLength(2);
+  await expect(h.create({ id: "third" })).rejects.toThrow("limit");
 });
