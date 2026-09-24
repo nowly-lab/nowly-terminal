@@ -32,12 +32,20 @@ pnpm native       # ネイティブウィンドウを起動
 
 ## 他のアプリで使う
 
-まだレジストリへ公開していません。ローカルでパッケージを作ってインストールできます。
+npmパッケージとしてインストールできます。
+
+```sh
+npm install @nowly-lab/terminal
+# または
+pnpm add @nowly-lab/terminal
+```
+
+ローカルで配布ファイルを作ってインストールする場合:
 
 ```sh
 pnpm pack  # 配布前に自動ビルドされます
 # 組み込み先のプロジェクトで
-pnpm add /path/to/nowly-terminal/nowly-terminal-0.2.1.tgz
+pnpm add /path/to/nowly-terminal/nowly-lab-terminal-0.2.1.tgz
 ```
 
 インストール済みパッケージには `nowly-terminal` コマンドも含まれます。サーバー用コードを書かずに、次のように起動できます。
@@ -53,7 +61,7 @@ pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .
 アプリのNodeプロセスに直接組み込む場合のサーバー側:
 
 ```ts
-import { createTerminalServer } from '@nowly/terminal/server';
+import { createTerminalServer } from '@nowly-lab/terminal/server';
 
 const server = await createTerminalServer({
   token: process.env.TERMINAL_TOKEN!,
@@ -67,9 +75,9 @@ const server = await createTerminalServer({
 React側:
 
 ```tsx
-import { WebSocketTransport } from '@nowly/terminal/client';
-import { TerminalWorkspace } from '@nowly/terminal/react';
-import '@nowly/terminal/styles.css';
+import { WebSocketTransport } from '@nowly-lab/terminal/client';
+import { TerminalWorkspace } from '@nowly-lab/terminal/react';
+import '@nowly-lab/terminal/styles.css';
 
 // アプリの接続単位で一度だけ生成。トークンはアプリの認証経由で渡す。
 const transport = new WebSocketTransport({

@@ -30,9 +30,9 @@ try {
   const lock = JSON.parse(
     readFileSync(join(example, "package-lock.json"), "utf8"),
   );
-  const bytes = readFileSync(join(temp, name, `nowly-terminal-${version}.tgz`));
+  const bytes = readFileSync(join(temp, name, `nowly-lab-terminal-${version}.tgz`));
   assert.equal(
-    lock.packages["node_modules/@nowly/terminal"].integrity,
+    lock.packages["node_modules/@nowly-lab/terminal"].integrity,
     "sha512-" + createHash("sha512").update(bytes).digest("base64"),
   );
   const env = { ...process.env, npm_config_cache: join(temp, "cache") };

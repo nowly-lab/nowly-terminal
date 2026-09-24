@@ -5,12 +5,12 @@
   "type": "module",
   "main": "main.cjs",
   "scripts": {
-    "rebuild": "electron-rebuild -f -w node-pty && node node_modules/@nowly/terminal/scripts/prepare-pty.mjs",
+    "rebuild": "electron-rebuild -f -w node-pty && node node_modules/@nowly-lab/terminal/scripts/prepare-pty.mjs",
     "build": "tsc --noEmit && vite build",
     "start": "npm run build && electron ."
   },
   "dependencies": {
-    "@nowly/terminal": "file:../../nowly-terminal-0.2.1.tgz",
+    "@nowly-lab/terminal": "file:../../nowly-lab-terminal-0.2.1.tgz",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },

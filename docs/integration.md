@@ -4,20 +4,20 @@
 
 | Import | Purpose | Environment |
 | --- | --- | --- |
-| `@nowly/terminal` | `TerminalTransport`, request/event/session types | Any |
-| `@nowly/terminal/client` | `WebSocketTransport` | Browser, Node 22+ |
-| `@nowly/terminal/browser` | `mountTerminal`, `TerminalHandle` | Browser DOM |
-| `@nowly/terminal/react` | `TerminalView`, `TerminalWorkspace` | React 18+ |
-| `@nowly/terminal/daemon` | Persistent daemon launcher/client | Trusted Node/Electron main |
-| `@nowly/terminal/server` | `TerminalHost`, `createTerminalServer` | Node + node-pty |
-| `@nowly/terminal/styles.css` | Scoped view/workspace styles, imports xterm CSS | CSS-aware bundler |
+| `@nowly-lab/terminal` | `TerminalTransport`, request/event/session types | Any |
+| `@nowly-lab/terminal/client` | `WebSocketTransport` | Browser, Node 22+ |
+| `@nowly-lab/terminal/browser` | `mountTerminal`, `TerminalHandle` | Browser DOM |
+| `@nowly-lab/terminal/react` | `TerminalView`, `TerminalWorkspace` | React 18+ |
+| `@nowly-lab/terminal/daemon` | Persistent daemon launcher/client | Trusted Node/Electron main |
+| `@nowly-lab/terminal/server` | `TerminalHost`, `createTerminalServer` | Node + node-pty |
+| `@nowly-lab/terminal/styles.css` | Scoped view/workspace styles, imports xterm CSS | CSS-aware bundler |
 
 ## Framework-neutral view
 
 ```ts
-import { WebSocketTransport } from '@nowly/terminal/client';
-import { mountTerminal } from '@nowly/terminal/browser';
-import '@nowly/terminal/styles.css';
+import { WebSocketTransport } from '@nowly-lab/terminal/client';
+import { mountTerminal } from '@nowly-lab/terminal/browser';
+import '@nowly-lab/terminal/styles.css';
 
 const transport = new WebSocketTransport({ url, token });
 const element = document.querySelector<HTMLElement>('#terminal')!;
@@ -58,7 +58,7 @@ The IPC bridge validates sender/window/top-frame/file URL, permits only public t
 ### Daemon API
 
 ```ts
-import { ensureTerminalDaemon, connectTerminalDaemon } from '@nowly/terminal/daemon';
+import { ensureTerminalDaemon, connectTerminalDaemon } from '@nowly-lab/terminal/daemon';
 const transport = await ensureTerminalDaemon({
   runtimeDir: '/private/application-data/terminal-daemon',
   hostOptions: { cwd: projectDirectory },
@@ -108,7 +108,7 @@ Input/frame bounds, session caps and slow-consumer disconnects constrain memory 
 
 ## Installation
 
-Build and pack before consuming. pnpm must allow node-pty install scripts (`pnpm approve-builds` in a consuming app where required). On macOS the package postinstall restores the published spawn-helper executable bit. If your installer disables lifecycle scripts, run `node node_modules/@nowly/terminal/scripts/prepare-pty.mjs` explicitly. Linux may need a compiler/toolchain for node-pty. Never share a node-pty binary across Node/Electron ABI versions.
+Build and pack before consuming. pnpm must allow node-pty install scripts (`pnpm approve-builds` in a consuming app where required). On macOS the package postinstall restores the published spawn-helper executable bit. If your installer disables lifecycle scripts, run `node node_modules/@nowly-lab/terminal/scripts/prepare-pty.mjs` explicitly. Linux may need a compiler/toolchain for node-pty. Never share a node-pty binary across Node/Electron ABI versions.
 
 ## Local command startup
 
@@ -120,7 +120,7 @@ Browser E2E explicitly uses clean mode on 5196/5197. Native E2E uses normal mode
 
 ## Packaged CLI
 
-The npm package `@nowly/terminal@0.2.1` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
+The npm package `@nowly-lab/terminal@0.2.1` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
 
 The CLI defaults to normal login/interactive startup; `--profile clean` explicitly skips optional startup configuration. `--shell` picks the shell executable. Ctrl+C closes sockets and owned sessions. The CLI is a backend entry point; mount the browser or React exports in the embedding application for the UI.
 
@@ -156,7 +156,7 @@ await transport.request('create', {id: 'coding'});
 await transport.request('attach', {id: 'coding'});
 ```
 
-The existing native IPC bridge forwards these events; no new renderer privilege is needed. In React, add `<AgentActivity transport={transport} />` from `@nowly/terminal/react` beside `TerminalWorkspace`. A renderer must attach to the session (TerminalWorkspace already does this) to receive its live events.
+The existing native IPC bridge forwards these events; no new renderer privilege is needed. In React, add `<AgentActivity transport={transport} />` from `@nowly-lab/terminal/react` beside `TerminalWorkspace`. A renderer must attach to the session (TerminalWorkspace already does this) to receive its live events.
 
 HostOptions.codex accepts executable, args (trusted CLI configuration arguments), optional initial prompt, sandbox (read-only/workspace-write), approvalPolicy (on-request/never), and startupTimeoutMs. Arguments are individually quoted; they are not renderer-controlled shell snippets. The optional initial prompt runs once when a new session is created, never on attach/reload. Omit sandbox/approvalPolicy to keep the user's Codex settings. This integration does not approve requests or alter hook trust; normal Codex prompts remain in the TUI.
 

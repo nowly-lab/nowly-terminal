@@ -4,7 +4,7 @@ import type {
   ConnectionStatus,
   Method,
   Requests,
-} from "@nowly/terminal";
+} from "@nowly-lab/terminal";
 interface TerminalBridge {
   request<M extends Method>(
     method: M,

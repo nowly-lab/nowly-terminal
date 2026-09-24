@@ -1,4 +1,4 @@
-import { validId } from "@nowly/terminal";
+import { validId } from "@nowly-lab/terminal";
 
 /** One trusted renderer forwards the public protocol; admin control stays in main. */
 export function bindTerminalIpc({ ipcMain, window, transport, rendererUrl }) {

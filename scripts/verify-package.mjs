@@ -53,7 +53,7 @@ try {
       private: true,
       type: "module",
       pnpm: {
-        onlyBuiltDependencies: ["node-pty", "@nowly/terminal", "esbuild"],
+        onlyBuiltDependencies: ["node-pty", "@nowly-lab/terminal", "esbuild"],
       },
     }),
   );
@@ -74,7 +74,7 @@ try {
     ],
     temporary,
   );
-  const installed = join(temporary, "node_modules/@nowly/terminal");
+  const installed = join(temporary, "node_modules/@nowly-lab/terminal");
   assert.ok(!existsSync(join(installed, "examples")));
   assert.ok(!existsSync(join(installed, "tests")));
   run(
@@ -88,13 +88,13 @@ try {
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
-import {WebSocketTransport} from '@nowly/terminal/client';
-import {TerminalHost} from '@nowly/terminal/server';
-import {validId} from '@nowly/terminal';
+import {WebSocketTransport} from '@nowly-lab/terminal/client';
+import {TerminalHost} from '@nowly-lab/terminal/server';
+import {validId} from '@nowly-lab/terminal';
 validId('consumer');assert.equal(typeof TerminalHost,'function');
-assert.match(import.meta.resolve('@nowly/terminal/styles.css'),/styles.css$/);
+assert.match(import.meta.resolve('@nowly-lab/terminal/styles.css'),/styles.css$/);
 const secret=randomBytes(24).toString('hex');
-const child=spawn(process.execPath,['node_modules/@nowly/terminal/dist/cli.js','serve','--profile','clean','--port','0','--origin','http://localhost:3000'],{env:{...process.env,TERMINAL_TOKEN:secret},stdio:['ignore','pipe','pipe']});
+const child=spawn(process.execPath,['node_modules/@nowly-lab/terminal/dist/cli.js','serve','--profile','clean','--port','0','--origin','http://localhost:3000'],{env:{...process.env,TERMINAL_TOKEN:secret},stdio:['ignore','pipe','pipe']});
 let log='',errors='';child.stdout.on('data',data=>log+=data);child.stderr.on('data',data=>errors+=data);
 const exit=new Promise(resolve=>child.once('exit',code=>resolve(code)));
 let client;
@@ -124,11 +124,11 @@ try {
     join(temporary, "main.tsx"),
     `import * as React from 'react';
 import {createRoot} from 'react-dom/client';
-import {TerminalWorkspace,TerminalView} from '@nowly/terminal/react';
-import {mountTerminal} from '@nowly/terminal/browser';
-import {WebSocketTransport} from '@nowly/terminal/client';
-import type {HostOptions} from '@nowly/terminal/server';
-import '@nowly/terminal/styles.css';
+import {TerminalWorkspace,TerminalView} from '@nowly-lab/terminal/react';
+import {mountTerminal} from '@nowly-lab/terminal/browser';
+import {WebSocketTransport} from '@nowly-lab/terminal/client';
+import type {HostOptions} from '@nowly-lab/terminal/server';
+import '@nowly-lab/terminal/styles.css';
 const options:HostOptions={shellProfile:'clean'};
 const transport=new WebSocketTransport({url:'ws://127.0.0.1:5187/terminal',token:'consumer-example'});
 void [options,TerminalView,mountTerminal];

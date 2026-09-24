@@ -1,6 +1,6 @@
 # Electron 組み込みサンプル
 
-`@nowly/terminal` の配布パッケージを使ったネイティブアプリです。React画面 → preload IPC → Electronメイン → ローカルソケット → 独立した常駐プロセス → PTY の構成です。アプリが自動起動するため、サーバーの手動起動は不要です。
+`@nowly-lab/terminal` の配布パッケージを使ったネイティブアプリです。React画面 → preload IPC → Electronメイン → ローカルソケット → 独立した常駐プロセス → PTY の構成です。アプリが自動起動するため、サーバーの手動起動は不要です。
 
 ## このリポジトリで起動
 
@@ -17,7 +17,7 @@ npm run rebuild
 npm start
 ```
 
-展開したディレクトリ構成を保ってください。2階層上にある `nowly-terminal-0.2.1.tgz` が依存先です。`ELECTRON_RUN_AS_NODE` を設定している特殊な環境では、起動前に解除してください。
+展開したディレクトリ構成を保ってください。2階層上にある `nowly-lab-terminal-0.2.1.tgz` が依存先です。`ELECTRON_RUN_AS_NODE` を設定している特殊な環境では、起動前に解除してください。
 
 ## 他のアプリへ組み込む場所
 

@@ -2,7 +2,7 @@
 import { parseCliOptions } from "./cli-options.js";
 const help = `Usage: nowly-terminal serve [options]
 
-Start a local PTY host for @nowly/terminal browser and React clients.
+Start a local PTY host for @nowly-lab/terminal browser and React clients.
 Set TERMINAL_TOKEN in the environment. Tokens are never printed or put in URLs.
 
   --port <number>       Listen on 127.0.0.1 (default: 5187, 0: automatic)

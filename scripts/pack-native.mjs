@@ -30,8 +30,8 @@ try {
       !["node_modules", "dist", ".DS_Store"].includes(basename(source)),
   });
   copyFileSync(
-    join(root, `nowly-terminal-${version}.tgz`),
-    join(folder, `nowly-terminal-${version}.tgz`),
+    join(root, `nowly-lab-terminal-${version}.tgz`),
+    join(folder, `nowly-lab-terminal-${version}.tgz`),
   );
   // Regenerate the local dependency's integrity against this exact build.
   run(
@@ -41,7 +41,7 @@ try {
       "--package-lock-only",
       "--ignore-scripts",
       "--no-audit",
-      `../../nowly-terminal-${version}.tgz`,
+      `../../nowly-lab-terminal-${version}.tgz`,
     ],
     join(folder, "examples/electron"),
   );

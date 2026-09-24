@@ -17,7 +17,7 @@ app.on("window-all-closed", () => app.quit());
 app
   .whenReady()
   .then(async () => {
-    const { ensureTerminalDaemon } = await import("@nowly/terminal/daemon");
+    const { ensureTerminalDaemon } = await import("@nowly-lab/terminal/daemon");
     const { bindTerminalIpc } = await import("./terminal-ipc.mjs");
     const codex = process.env.TERMINAL_PROGRAM !== "shell";
     const transport = await ensureTerminalDaemon({

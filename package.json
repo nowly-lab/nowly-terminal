@@ -1,5 +1,5 @@
 {
-  "name": "@nowly/terminal",
+  "name": "@nowly-lab/terminal",
   "version": "0.2.1",
   "type": "module",
   "license": "MIT",
@@ -114,5 +114,17 @@
   "sideEffects": [
     "**/*.css",
     "./dist/cli.js"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nowly-lab/nowly-terminal.git"
+  },
+  "homepage": "https://github.com/nowly-lab/nowly-terminal#readme",
+  "bugs": {
+    "url": "https://github.com/nowly-lab/nowly-terminal/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }

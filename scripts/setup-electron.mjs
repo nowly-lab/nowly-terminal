@@ -21,7 +21,7 @@ const { version } = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 // npm keeps Electron's native rebuild isolated from the root pnpm store.
-run("npm", ["install", `../../nowly-terminal-${version}.tgz`], example);
+run("npm", ["install", `../../nowly-lab-terminal-${version}.tgz`], example);
 run(process.execPath, ["node_modules/electron/install.js"], example);
 run("npm", ["run", "rebuild"], example);
 run("npm", ["run", "build"], example);

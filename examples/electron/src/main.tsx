@@ -4,8 +4,8 @@ import {
   AgentActivity,
   TerminalWorkspace,
   type WorkspaceLayout,
-} from "@nowly/terminal/react";
-import "@nowly/terminal/styles.css";
+} from "@nowly-lab/terminal/react";
+import "@nowly-lab/terminal/styles.css";
 import { IpcTransport } from "./ipc-transport";
 import "./styles.css";
 const transport = new IpcTransport();
