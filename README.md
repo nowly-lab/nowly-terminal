@@ -13,9 +13,20 @@ pnpm dev
 
 `pnpm dev` で画面とローカル実行サーバーの両方が起動します。[デモ画面](http://127.0.0.1:5186)を開きます。タブ作成、左右/上下分割、ペイン右下からサイズ変更、検索、タブ名のダブルクリック変更ができます。ブラウザの再読み込み後も同じシェルを使います。×で閉じるとシェルを終了します。
 
-デモは追加のシェル設定を読み込まない高速起動です。ローカルの `PATH` を引き継ぎ、`pwd`、`ls`、`node --version` などをこのPC上で実行します。普段の `.zshrc` やエイリアスも読み込む場合は `pnpm dev:user` を使います。通常設定内の外部ツール初期化によって起動が遅くなる場合があります。個別起動は `pnpm dev:server` と `pnpm dev:ui` です。
+標準でログイン・対話シェルを起動し、`.zprofile` / `.zshrc`、PATH、エイリアスなど普段の設定を読み込みます。設定内の外部ツール初期化が終わるまで、プロンプトの表示を待ちます。設定を省略したい場合だけ `pnpm dev:clean` を指定します。`pnpm dev:user` は通常起動の互換エイリアスです。個別起動は `pnpm dev:server` と `pnpm dev:ui` です。
 
 デモ専用の既知トークン `local-demo-token` を使っています。実アプリでは独自のランダムトークンを発行してください。`TERMINAL_TOKEN` 環境変数でデモサーバーを変更した場合、ブラウザの `sessionStorage['terminal-token']` へ同じ値を設定して再読み込みします。
+
+## ネイティブアプリのサンプル
+
+Orcaと同じElectronの構成で、メインプロセスがPTYを所有し、preloadの限定したIPC経由でReact画面へ接続します。WebSocketサーバーを起動せず、ローカルコマンドを実行できます。
+
+```sh
+pnpm native:setup # パッケージ作成・別依存環境へインストール・Electron用の再ビルド
+pnpm native       # ネイティブウィンドウを起動
+```
+
+[組み込みサンプルと手順](examples/electron/README.md)。実パッケージだけをimportし、Orcaやこのリポジトリのsrcには依存しません。`pnpm native:pack` でサンプルソースとライブラリtgzをまとめた `nowly-terminal-native-example-0.1.2.tgz` を作れます。
 
 ## 他のアプリで使う
 
@@ -24,7 +35,7 @@ pnpm dev
 ```sh
 pnpm pack  # 配布前に自動ビルドされます
 # 組み込み先のプロジェクトで
-pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.1.tgz
+pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.2.tgz
 ```
 
 インストール済みパッケージには `nowly-terminal` コマンドも含まれます。サーバー用コードを書かずに、次のように起動できます。
@@ -35,7 +46,7 @@ export TERMINAL_TOKEN="$(node -e 'process.stdout.write(require("node:crypto").ra
 pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .
 ```
 
-`--port`、`--shell`、`--profile clean|user` を指定できます。標準では追加シェル設定を読み込まず、ローカルのPATHを引き継いでコマンドを実行します。UIはアプリ側に組み込み、上のサーバーへ接続します。
+`--port`、`--shell`、`--profile clean|user` を指定できます。標準ではログイン・対話シェルの設定を読み込みます。設定を省略する場合だけ `--profile clean` を指定します。UIはアプリ側に組み込み、上のサーバーへ接続します。
 
 アプリのNodeプロセスに直接組み込む場合のサーバー側:
 
@@ -72,7 +83,7 @@ export function TerminalPanel() {
 // 接続の所有者が破棄されるとき: transport.dispose()
 ```
 
-単一ペインは `<TerminalView transport={transport} sessionId="shell-1" />`。Reactを使わない場合は `mountTerminal(element, options)`。Electronでも同じクライアントを使え、レンダラーのNode権限は不要です。
+単一ペインは `<TerminalView transport={transport} sessionId="shell-1" />`。Reactを使わない場合は `mountTerminal(element, options)`。Electron用のIPCサンプルでも同じ画面部品を使います。レンダラーのNode権限は不要です。
 
 詳しいAPI、Electronでの配置、ライフサイクル、通信仕様は [組み込みガイド](docs/integration.md) を参照してください。
 
@@ -96,7 +107,7 @@ export function TerminalPanel() {
 | pane-manager / resize lifecycle | `mountTerminal`、ResizeObserver、リソース解放 |
 | output scheduler / backlog recovery | parser完了順の描画、上限超過時にスナップショット復元 |
 | terminal tab / split store | React `TerminalWorkspace`、外部へレイアウト保存可能 |
-| Electron IPC / runtime stream | アプリから独立した `TerminalTransport` とWebSocket実装 |
+| Electron IPC / runtime stream | `TerminalTransport`、WebSocket実装、Electron IPCサンプル |
 
 これはOrcaの全機能互換フォークではありません。Git/AIエージェント管理、SSH接続管理、クラウドペアリング、独自xtermパッチ、画像表示、ディスクへの履歴永続化は含みません。サーバーが動いている間は再接続できますが、サーバー終了後にシェルプロセスが復活するものではありません。実シェルの結果はホストOSとshellの設定に従います。
 
@@ -106,6 +117,8 @@ export function TerminalPanel() {
 pnpm check
 pnpm exec playwright install chromium
 pnpm test:e2e
+pnpm native:setup
+pnpm test:native  # 非表示のElectronでシェル初期化・IPC・復元を検証
 pnpm test:package  # 実際の配布ファイルを別プロジェクトへ入れて検証
 pnpm exec vite build --config examples/react/vite.config.ts
 ```

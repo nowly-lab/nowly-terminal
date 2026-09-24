@@ -9,8 +9,21 @@
     "skipLibCheck": true,
     "declaration": true,
     "outDir": "dist",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ]
   },
-  "include": ["src", "tests", "examples", "playwright.config.ts"],
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src",
+    "tests",
+    "examples",
+    "playwright.config.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "examples/electron"
+  ]
 }

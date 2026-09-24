@@ -29,3 +29,16 @@ A failing regression test first reproduced `.zshrc` delaying the prompt; with cl
 - `pnpm test:package`: automatic pack/build, isolated installation, packaged CLI startup, real local Node command through WebSocket/PTY, graceful shutdown, strict consumer TypeScript validation, and React/CSS production build all pass.
 - CLI auth comes from `TERMINAL_TOKEN`; no token is printed. Invalid ports, origins, profile names, unknown and missing options are covered by tests.
 - Artifact: `nowly-terminal-0.1.1.tgz`. npm registry publication was not performed.
+
+## Shell initialization and native sample — 0.1.2
+
+This revision supersedes the earlier clean-default workaround: library, CLI, browser demo and native sample now use the normal user profile. Supported POSIX shells start with `-il`; `.zprofile` PATH and `.zshrc` aliases are verified together. Clean mode is explicit only (`pnpm dev:clean` / `--profile clean`). User dotfiles are untouched.
+
+- `pnpm check`: 18 tests, typecheck and build pass.
+- `pnpm native:setup`: installs the actual 0.1.2 tarball into an isolated npm project, rebuilds node-pty for Electron 43.7.0, and builds the renderer successfully.
+- `pnpm test:native`: hidden macOS arm64 Electron window passes login PATH/alias initialization, real keyboard command execution, renderer isolation, invalid IPC rejection, split, reload with the same PID/output, pane close and PTY exit after app quit.
+- The native renderer uses fixed-channel preload IPC, not a WebSocket server. Main validates sender/top frame/file URL and owns lifecycle. The example imports package exports only.
+
+![Verified native terminal](media/native-terminal.png)
+
+This is a runnable Electron source example, not a signed application installer. Linux/Windows native execution remains unverified.

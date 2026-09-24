@@ -42,11 +42,18 @@ The container must have nonzero dimensions. React TerminalView supplies its own 
 
 ## Electron
 
-The simplest deployment uses a separately launched Node server and the same WebSocket client in the renderer. Keep `nodeIntegration: false` and `contextIsolation: true`; do not import `@nowly/terminal/server` into the renderer. Issue a random token from the trusted main process, supply it via a narrow preload API or app configuration, and include the renderer's exact origin in `allowedOrigins`. `file:` renderers send Origin `null`; explicitly allow the string `null` only if that is your application's chosen origin policy, and retain token authentication.
+The runnable `examples/electron` sample uses `TerminalHost` directly in Electron main and `IpcTransport` in the sandboxed renderer. No local server or WebSocket token is required. Run `pnpm native:setup`, then `pnpm native` from the repository root. The standalone source archive includes the library tarball and the sample; see its README for installation.
 
-To host the server inside Electron main, use `createTerminalServer` there and rebuild node-pty for that Electron version (for example with the application's existing electron-rebuild setup). Include its native binary and spawn-helper outside ASAR; preserve the helper executable bit. Call `server.close()` on application shutdown. A separate Node server avoids the Electron ABI issue and can outlive renderer reloads. Neither pattern automatically supervises/restarts the server; that lifecycle belongs to the embedding app.
+- `main.cjs` owns the host and window. It fixes shell/cwd in trusted main configuration, denies renderer navigation, new windows and permissions, and disposes the host before app quit.
+- `preload.cjs` exposes only terminal `request` / `subscribe` methods on fixed channels, with `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`.
+- `terminal-ipc.mjs` checks the exact window, top frame and local renderer URL; validates methods/parameters; serializes requests and fences work across reloads. Reload detaches listeners while preserving PTYs; closing a pane terminates that PTY.
+- `src/ipc-transport.ts` implements the existing `TerminalTransport`, so `TerminalWorkspace` and `TerminalView` work unchanged.
 
-For an existing IPC/RPC channel, implement `TerminalTransport`: `status`, `request(method,params)`, `subscribe(eventListener)`, `onStatus(statusListener)`. Emit the snapshot before live events after attach, reject pending calls on disconnect, and validate untrusted messages on the host. The browser layer imports no Node code and does not require the WebSocket implementation.
+This sample binds one window to one host. For multiple windows, route IPC by sender and own subscriptions per window. The trusted terminal renderer is authorized to execute commands as the OS user; never load untrusted content into it. The sample denies external links rather than opening arbitrary protocols.
+
+Electron uses a different native ABI from Node. The sample installs its own dependencies using npm and rebuilds node-pty with `electron-rebuild`; it does not mutate the root Node installation. For a packaged native app, include node-pty's native binary and spawn-helper outside ASAR and preserve executable permissions. This example runs in Electron but does not produce a signed installer.
+
+A separately launched Node server with the WebSocket transport remains supported. Supply a random token and exact allowed origin (`null` only when deliberately using file-origin WebSocket clients). For an existing IPC channel, preserve snapshot-before-live ordering and validate messages on the trusted host. Never import server code into a renderer bundle.
 
 ## Host API and ownership
 
@@ -78,14 +85,16 @@ Build and pack before consuming. pnpm must allow node-pty install scripts (`pnpm
 
 ## Local command startup
 
-`pnpm dev` starts the localhost UI and PTY server together. The demo uses `shellProfile: 'clean'`: zsh `-f`, bash `--noprofile --norc`, fish `--no-config`, PowerShell `-NoLogo -NoProfile`, cmd `/d`. The package default remains `shellProfile: 'user'`, preserving previous behavior. Explicit `args` override profile defaults. Unknown shells require explicit args for clean mode. System startup files and inherited environment are not an isolation boundary.
+`pnpm dev` starts the localhost UI and PTY server together. Library, CLI and demos all default to `shellProfile: 'user'`. zsh/bash/fish/sh/dash receive `-il` (interactive login); PowerShell loads its normal profile with `-NoLogo`; cmd uses its normal startup. Explicit `args` override these defaults. Unknown shell names use their normal invocation; specify `args` if they require login flags.
 
-The current working directory and inherited PATH are available to real local processes. The clean profile skips user aliases and startup hooks; use `pnpm dev:user` to opt into those. E2E runs the same one-command demo on ports 5196/5197 so it does not interrupt the user's demo on 5186/5187. Vite proxies `/terminal` to the PTY server, keeping the browser connection on the UI origin.
+Normal configuration supplies login PATH, aliases and shell hooks. Startup may take time if user dotfiles initialize external tools; the package does not silently bypass them. No dotfiles are modified. To deliberately skip configuration use `pnpm dev:clean`, CLI `--profile clean` or `shellProfile: 'clean'`. Clean args are zsh `-f`, bash `--noprofile --norc`, fish `--no-config`, PowerShell `-NoLogo -NoProfile`, cmd `/d`; sh/dash and system files may still initialize. Clean mode is not an isolation boundary.
+
+Browser E2E explicitly uses clean mode on 5196/5197. Native E2E uses normal mode with controlled `.zprofile` and `.zshrc` fixtures to verify PATH/aliases, command input and reload. Vite proxies `/terminal` on the browser demo; the native sample uses IPC only.
 
 ## Packaged CLI
 
-The npm package `@nowly/terminal@0.1.1` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
+The npm package `@nowly/terminal@0.1.2` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
 
-The CLI defaults to the clean shell profile; `--profile user` loads normal startup configuration. `--shell` picks the shell executable. Ctrl+C closes sockets and owned sessions. The CLI is a backend entry point; mount the browser or React exports in the embedding application for the UI.
+The CLI defaults to normal login/interactive startup; `--profile clean` explicitly skips optional startup configuration. `--shell` picks the shell executable. Ctrl+C closes sockets and owned sessions. The CLI is a backend entry point; mount the browser or React exports in the embedding application for the UI.
 
 `pnpm pack` runs a clean build automatically, including declarations and CSS. `pnpm test:package` packs, installs into an isolated temporary project, launches the packaged CLI, runs a real local command through WebSocket/PTY, checks shutdown, type-checks a consumer without skipping dependency declarations, and builds its React/CSS bundle. No npm publication or registry credentials are required.
