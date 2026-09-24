@@ -1,0 +1,93 @@
+{
+  "name": "@nowly/terminal",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Embeddable PTY terminal toolkit inspired by Orca",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "docs/integration.md",
+    "THIRD_PARTY_NOTICES.md",
+    "LICENSE",
+    "scripts/prepare-pty.mjs"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "dev": "tsx examples/react/server.ts",
+    "dev:ui": "vite --config examples/react/vite.config.ts",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "postinstall": "node scripts/prepare-pty.mjs"
+  },
+  "dependencies": {
+    "@xterm/xterm": "6.1.0-beta.303",
+    "@xterm/headless": "6.1.0-beta.302",
+    "@xterm/addon-serialize": "0.15.0-beta.300",
+    "@xterm/addon-fit": "0.12.0-beta.300",
+    "@xterm/addon-search": "0.17.0-beta.300",
+    "@xterm/addon-unicode11": "0.10.0-beta.300",
+    "@xterm/addon-web-links": "0.13.0-beta.300",
+    "node-pty": "1.1.0",
+    "ws": "8.18.3"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ws": "^8",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tsx": "^4.20.6",
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4",
+    "@playwright/test": "^1.55.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "node-pty",
+      "esbuild"
+    ]
+  }
+}
