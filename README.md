@@ -1,0 +1,105 @@
+# Nowly Terminal
+
+Orcaのターミナル構成を、他のアプリへ組み込みやすい独立パッケージとして再実装したものです。Node側の実PTY、通信、画面復元、ブラウザUI、Reactのタブ・分割UIを含みます。Orca本体は実行時に不要です。
+
+## 起動
+
+Node.js 22以上とpnpmを使用します。
+
+```sh
+pnpm install
+pnpm dev
+# 別ターミナルで
+pnpm dev:ui
+```
+
+[デモ画面](http://127.0.0.1:5186)を開きます。タブ作成、左右/上下分割、ペイン右下からサイズ変更、検索、タブ名のダブルクリック変更ができます。ブラウザの再読み込み後も同じシェルを使います。×で閉じるとシェルを終了します。
+
+デモ専用の既知トークン `local-demo-token` を使っています。実アプリでは独自のランダムトークンを発行してください。`TERMINAL_TOKEN` 環境変数でデモサーバーを変更した場合、ブラウザの `sessionStorage['terminal-token']` へ同じ値を設定して再読み込みします。
+
+## 他のアプリで使う
+
+まだレジストリへ公開していません。ローカルでパッケージを作ってインストールできます。
+
+```sh
+pnpm build
+pnpm pack
+# 組み込み先のプロジェクトで
+pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.0.tgz
+```
+
+サーバー側:
+
+```ts
+import { createTerminalServer } from '@nowly/terminal/server';
+
+const server = await createTerminalServer({
+  token: process.env.TERMINAL_TOKEN!,
+  allowedOrigins: ['http://localhost:3000'],
+  port: 5187,
+  hostOptions: { cwd: process.cwd() },
+});
+// アプリ終了時: await server.close()
+```
+
+React側:
+
+```tsx
+import { WebSocketTransport } from '@nowly/terminal/client';
+import { TerminalWorkspace } from '@nowly/terminal/react';
+import '@nowly/terminal/styles.css';
+
+// アプリの接続単位で一度だけ生成。トークンはアプリの認証経由で渡す。
+const transport = new WebSocketTransport({
+  url: 'ws://127.0.0.1:5187/terminal',
+  token: terminalToken,
+});
+
+export function TerminalPanel() {
+  return <div style={{ height: 500 }}>
+    <TerminalWorkspace transport={transport} />
+  </div>;
+}
+// 接続の所有者が破棄されるとき: transport.dispose()
+```
+
+単一ペインは `<TerminalView transport={transport} sessionId="shell-1" />`。Reactを使わない場合は `mountTerminal(element, options)`。Electronでも同じクライアントを使え、レンダラーのNode権限は不要です。
+
+詳しいAPI、Electronでの配置、ライフサイクル、通信仕様は [組み込みガイド](docs/integration.md) を参照してください。
+
+## 含まれる機能
+
+- node-ptyによる実シェル、入力、ANSIカラー、リサイズ、終了コード
+- xtermによるスクロールバック、選択・コピー・貼り付け、Unicode 11、IME、検索、URLリンク
+- サーバー側のheadless xtermとスナップショットによる画面復元
+- 自動再接続、出力の連番チェック、切断中のセッション保持
+- タブ、左右/上下分割、検索、セッションの明示的終了
+- トークン認証、Origin検証、入力・セッション数・出力待ちの上限
+- 型定義と分離されたbrowser / React / server exports
+
+## Orcaとの対応
+
+| Orca側の仕組み | このパッケージ |
+| --- | --- |
+| terminal-host / Session / PTY subprocess | `TerminalHost` / `Session` + node-pty。独立Nodeプロセスで起動可能 |
+| headless-emulator / snapshot | headless xterm + serialize addon、出力順序と途中ANSIの復元 |
+| terminal-partial-escape-tail | 元コードをMITライセンス付きで移植 |
+| pane-manager / resize lifecycle | `mountTerminal`、ResizeObserver、リソース解放 |
+| output scheduler / backlog recovery | parser完了順の描画、上限超過時にスナップショット復元 |
+| terminal tab / split store | React `TerminalWorkspace`、外部へレイアウト保存可能 |
+| Electron IPC / runtime stream | アプリから独立した `TerminalTransport` とWebSocket実装 |
+
+これはOrcaの全機能互換フォークではありません。Git/AIエージェント管理、SSH接続管理、クラウドペアリング、独自xtermパッチ、画像表示、ディスクへの履歴永続化は含みません。サーバーが動いている間は再接続できますが、サーバー終了後にシェルプロセスが復活するものではありません。実シェルの結果はホストOSとshellの設定に従います。
+
+## 検証
+
+```sh
+pnpm check
+pnpm exec playwright install chromium
+pnpm test:e2e
+pnpm exec vite build --config examples/react/vite.config.ts
+```
+
+実PTYの入出力・終了・復元、認証拒否、接続復旧、ANSI分割、ブラウザのタブ/分割/再読み込みを検証します。ローカル実行環境はmacOS arm64です。Linux/Windowsの実機検証は未実施です。Windows/Electronではnode-ptyのビルドと対象ランタイムのABI適合が必要です。
+
+元実装の出典とライセンスは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。

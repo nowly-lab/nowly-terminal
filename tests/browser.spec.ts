@@ -1,24 +1,79 @@
-import {test,expect} from '@playwright/test';
-import {WebSocketTransport} from '../src/client.js';
-test('real shell, search, split, tabs, reload and reconnect',async({page})=>{
- const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
- await page.goto('/');await expect(page.locator('[data-terminal-state="running"]')).toHaveCount(1);
- const input=page.locator('.xterm-helper-textarea').first();await input.focus();
- await page.keyboard.type("printf 'BROWSER_%s\\n' OK");await page.keyboard.press('Enter');
- const client=new WebSocketTransport({url:'ws://127.0.0.1:5187/terminal',token:'local-demo-token'});await client.ready();
- let screen='';client.subscribe(event=>{if(event.type==='snapshot')screen=event.snapshot.ansi;});
- const original=(await client.request('list',{}))[0];
- await expect.poll(async()=>{await client.request('attach',{id:original.id});return screen;}).toContain('BROWSER_OK');
- await page.getByRole('button',{name:'Search terminal'}).click();await page.getByPlaceholder('Find in terminal').fill('BROWSER_OK');await page.getByRole('button',{name:'Next match'}).click();
- await expect(page.locator('.nt-search')).toBeVisible();
- await page.getByRole('button',{name:'Split right'}).click();await expect(page.locator('.nt-pane')).toHaveCount(2);
- await page.getByRole('button',{name:'New tab'}).click();await expect(page.getByRole('tab')).toHaveCount(2);
- await page.getByRole('tab').first().click();await expect(page.locator('.nt-pane:visible')).toHaveCount(2);
- await page.reload();await expect(page.locator('.nt-pane:visible')).toHaveCount(2);
- expect((await client.request('list',{})).find(s=>s.id===original.id)?.pid).toBe(original.pid);
- await page.getByRole('button',{name:'Reconnect'}).click();await expect(page.locator('[data-terminal-state="running"]:visible')).toHaveCount(2);
- await page.setViewportSize({width:900,height:650});await expect.poll(async()=> (await client.request('list',{})).find(s=>s.id===original.id)?.cols).toBeLessThan(original.cols);
- await page.screenshot({path:'test-results/terminal-workspace.png'});
- await page.getByRole('button',{name:'Close pane'}).first().click();await expect(page.locator('.nt-pane:visible')).toHaveCount(1);
- expect(errors).toEqual([]);for(const session of await client.request('list',{}))await client.request('close',{id:session.id});client.dispose();
+import { test, expect } from "@playwright/test";
+import { WebSocketTransport } from "../src/client.js";
+test("real shell, search, split, tabs, reload and reconnect", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator('[data-terminal-state="running"]')).toHaveCount(1);
+  const input = page.locator(".xterm-helper-textarea").first();
+  await input.focus();
+  await page.keyboard.type("printf 'BROWSER_%s\\n' OK");
+  await page.keyboard.press("Enter");
+  const client = new WebSocketTransport({
+    url: "ws://127.0.0.1:5187/terminal",
+    token: "local-demo-token",
+  });
+  await client.ready();
+  let screen = "";
+  client.subscribe((event) => {
+    if (event.type === "snapshot") screen = event.snapshot.ansi;
+  });
+  const original = (await client.request("list", {}))[0];
+  await expect
+    .poll(async () => {
+      await client.request("attach", { id: original.id });
+      return screen;
+    })
+    .toContain("BROWSER_OK");
+  await page.getByRole("button", { name: "Search terminal" }).click();
+  await page.getByPlaceholder("Find in terminal").fill("BROWSER_OK");
+  await page.getByRole("button", { name: "Next match" }).click();
+  await expect(page.locator(".nt-search")).toBeVisible();
+  await page.getByRole("button", { name: "Split right" }).click();
+  await expect(page.locator(".nt-pane")).toHaveCount(2);
+  await page.getByRole("button", { name: "New tab" }).click();
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await page.getByRole("tab").first().click();
+  await expect(page.locator(".nt-pane:visible")).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator(".nt-pane:visible")).toHaveCount(2);
+  expect(
+    (await client.request("list", {})).find((s) => s.id === original.id)?.pid,
+  ).toBe(original.pid);
+  await page.getByRole("button", { name: "Reconnect" }).click();
+  await expect(
+    page.locator('[data-terminal-state="running"]:visible'),
+  ).toHaveCount(2);
+  await page.setViewportSize({ width: 900, height: 650 });
+  await expect
+    .poll(
+      async () =>
+        (await client.request("list", {})).find((s) => s.id === original.id)
+          ?.cols,
+    )
+    .toBeLessThan(original.cols);
+  await page.screenshot({ path: "test-results/terminal-workspace.png" });
+  await page.getByRole("button", { name: "Close pane" }).first().click();
+  await expect(page.locator(".nt-pane:visible")).toHaveCount(1);
+  expect(errors).toEqual([]);
+  for (const session of await client.request("list", {}))
+    await client.request("close", { id: session.id });
+  client.dispose();
+});
+test("three split panes remain visible and closable", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator('[data-terminal-state="running"]')).toHaveCount(1);
+  await page.getByRole("button", { name: "Split right" }).click();
+  await page.getByRole("button", { name: "Split right" }).click();
+  const bounds = await page.locator(".nt-panes:visible").boundingBox();
+  for (const pane of await page.locator(".nt-pane").all()) {
+    const box = await pane.boundingBox();
+    expect(box!.x + box!.width).toBeLessThanOrEqual(
+      bounds!.x + bounds!.width + 1,
+    );
+  }
+  for (let i = 0; i < 3; i++)
+    await page.getByRole("button", { name: "Close pane" }).first().click();
 });

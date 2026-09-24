@@ -39,25 +39,26 @@
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-styles.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "dev": "tsx examples/react/server.ts",
     "dev:ui": "vite --config examples/react/vite.config.ts",
     "check": "pnpm typecheck && pnpm test && pnpm build",
-    "postinstall": "node scripts/prepare-pty.mjs"
+    "postinstall": "node scripts/prepare-pty.mjs",
+    "format": "prettier --write src tests examples scripts *.json *.ts"
   },
   "dependencies": {
-    "@xterm/xterm": "6.1.0-beta.303",
-    "@xterm/headless": "6.1.0-beta.302",
-    "@xterm/addon-serialize": "0.15.0-beta.300",
     "@xterm/addon-fit": "0.12.0-beta.300",
     "@xterm/addon-search": "0.17.0-beta.300",
+    "@xterm/addon-serialize": "0.15.0-beta.300",
     "@xterm/addon-unicode11": "0.10.0-beta.300",
     "@xterm/addon-web-links": "0.13.0-beta.300",
+    "@xterm/headless": "6.1.0-beta.302",
+    "@xterm/xterm": "6.1.0-beta.303",
     "node-pty": "1.1.0",
-    "ws": "8.18.3"
+    "ws": "8.21.3"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -72,17 +73,18 @@
     }
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "@playwright/test": "^1.55.1",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8",
+    "prettier": "^3.9.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
     "vite": "^7.1.7",
-    "vitest": "^3.2.4",
-    "@playwright/test": "^1.55.1"
+    "vitest": "^3.2.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
