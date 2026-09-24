@@ -12,7 +12,7 @@ test("real shell, search, split, tabs, reload and reconnect", async ({
   await page.keyboard.type("printf 'BROWSER_%s\\n' OK");
   await page.keyboard.press("Enter");
   const client = new WebSocketTransport({
-    url: "ws://127.0.0.1:5187/terminal",
+    url: "ws://127.0.0.1:5197/terminal",
     token: "local-demo-token",
   });
   await client.ready();

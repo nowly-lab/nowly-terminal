@@ -5,7 +5,7 @@ import { TerminalWorkspace, type WorkspaceLayout } from "../../src/react.js";
 import "../../src/styles.css";
 import "./page.css";
 const transport = new WebSocketTransport({
-  url: "ws://127.0.0.1:5187/terminal",
+  url: `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/terminal`,
   token: sessionStorage.getItem("terminal-token") ?? "local-demo-token",
 });
 function loadLayout(): WorkspaceLayout | undefined {
@@ -39,13 +39,14 @@ function App() {
       <div className="page-heading">
         <div>
           <span className="eyebrow">NOWLY / DEVELOPER TOOLS</span>
-          <h1>A terminal. In your app.</h1>
+          <h1>ローカルコマンドを、そのまま実行。</h1>
           <p>
-            Real shells, persistent sessions, and a UI that fits where you work.
+            下のターミナルに入力して Enter。pwd、ls、node --version
+            などを実行できます。
           </p>
         </div>
         <span className="local-badge">
-          <i /> Local environment
+          <i /> このPCで実行
         </span>
       </div>
       <div className="workspace-label">
@@ -60,7 +61,9 @@ function App() {
         />
       </div>
       <footer>
-        <span>Shell sessions stay alive when you switch tabs or reload.</span>
+        <span>
+          作業場所: nowly-terminal · Ctrl+C でコマンドを中断できます。
+        </span>
         <span>React + WebSocket + PTY</span>
       </footer>
     </main>

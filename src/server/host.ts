@@ -1,3 +1,4 @@
+import { shellProfileArgs, type ShellProfile } from "./shell-profile.js";
 import { homedir } from "node:os";
 import {
   MAX_INPUT_LENGTH,
@@ -9,6 +10,7 @@ import {
 import { Session, type SpawnOptions } from "./session.js";
 export interface HostOptions {
   shell?: string;
+  shellProfile?: ShellProfile;
   args?: string[];
   cwd?: string;
   env?: Record<string, string>;
@@ -33,7 +35,8 @@ export class TerminalHost {
       if (value !== undefined) env[key] = value;
     this.spawn = {
       shell,
-      args: options.args ?? [],
+      args:
+        options.args ?? shellProfileArgs(shell, options.shellProfile ?? "user"),
       cwd: options.cwd ?? homedir(),
       env: {
         ...env,

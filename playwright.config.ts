@@ -5,20 +5,15 @@ export default defineConfig({
   timeout: 30000,
   workers: 1,
   use: {
-    baseURL: "http://127.0.0.1:5186",
+    baseURL: "http://127.0.0.1:5196",
     headless: true,
     viewport: { width: 1280, height: 800 },
   },
   webServer: [
     {
       command: "pnpm dev",
-      env: { TERMINAL_DEMO_SHELL: "/bin/sh" },
-      url: "http://127.0.0.1:5187/health",
-      reuseExistingServer: false,
-    },
-    {
-      command: "pnpm dev:ui",
-      url: "http://127.0.0.1:5186",
+      env: { TERMINAL_UI_PORT: "5196", TERMINAL_API_PORT: "5197" },
+      url: "http://127.0.0.1:5196",
       reuseExistingServer: false,
     },
   ],

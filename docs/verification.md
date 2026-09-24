@@ -2,7 +2,7 @@
 
 Environment: macOS arm64. All checks below were run locally on the final source changes.
 
-- `pnpm check`: TypeScript and build pass; 13 tests across host, transport and restoration pass.
+- `pnpm check`: TypeScript and build pass; 14 tests across host, transport, restoration and shell profile pass.
 - `pnpm test:e2e`: two Chromium journeys pass against real node-pty shells: shell input, search controls, tab creation/switching, split/close, reload, reconnect preserving PID, resize; three panes remain within the workspace and can all be closed.
 - `pnpm exec vite build --config examples/react/vite.config.ts`: demo production bundle builds. xterm makes the bundle exceed Vite's default 500 kB warning threshold; this is a size warning, not a build failure.
 - `pnpm pack`: package includes separated browser/client/React/server exports, declarations, CSS, notices, integration documentation and native helper postinstall.
@@ -13,4 +13,10 @@ Read-only independent review identified incomplete cursor/charset restoration, q
 
 ![Verified terminal workspace](media/terminal-workspace.png)
 
-Limits: Linux/Windows and Electron packaged runtime have not been executed here. The demo E2E uses `/bin/sh` to avoid dependencies on the developer's personal shell plugins. Host restart persistence, full Orca native daemon recovery, saved SGR/charset register fidelity, and exhaustive TUI protocol compatibility are not claimed. Clipboard requests are limited to 64 KiB UTF-16 code units per write and wire frames to 128 KiB. Disk persistence, SSH management and image protocols remain outside this version.
+Limits: Linux/Windows and Electron packaged runtime have not been executed here. The demo E2E uses the real default shell with its clean profile to avoid dependencies on personal startup plugins. Host restart persistence, full Orca native daemon recovery, saved SGR/charset register fidelity, and exhaustive TUI protocol compatibility are not claimed. Clipboard requests are limited to 64 KiB UTF-16 code units per write and wire frames to 128 KiB. Disk persistence, SSH management and image protocols remain outside this version.
+
+## Local command follow-up
+
+The user's actual demo showed an empty terminal while user shell initialization ran external tools. The default demo now skips optional startup profiles, preserves inherited PATH, and starts UI + PTY host using one `pnpm dev`. The library retains user-profile behavior by default and exposes the opt-in `shellProfile` setting.
+
+A failing regression test first reproduced `.zshrc` delaying the prompt; with clean startup it passes and executes local `node` and `pwd`. All 14 tests and both Chromium journeys pass. The updated in-app browser was reloaded and `pwd; node --version; printf "LOCAL_COMMAND_OK\\n"` was typed through the terminal UI: output showed the nowly-terminal directory, Node v26.3.1 and LOCAL_COMMAND_OK. The demo remains running on port 5186.

@@ -43,11 +43,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "dev": "tsx examples/react/server.ts",
+    "dev": "tsx examples/react/dev.ts",
     "dev:ui": "vite --config examples/react/vite.config.ts",
     "check": "pnpm typecheck && pnpm test && pnpm build",
     "postinstall": "node scripts/prepare-pty.mjs",
-    "format": "prettier --write src tests examples scripts *.json *.ts"
+    "format": "prettier --write src tests examples scripts *.json *.ts",
+    "dev:server": "tsx examples/react/server.ts",
+    "dev:user": "tsx examples/react/dev.ts --user-shell"
   },
   "dependencies": {
     "@xterm/addon-fit": "0.12.0-beta.300",

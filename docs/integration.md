@@ -50,7 +50,7 @@ For an existing IPC/RPC channel, implement `TerminalTransport`: `status`, `reque
 
 ## Host API and ownership
 
-`new TerminalHost({shell,args,cwd,env,scrollback,maxSessions})` defaults to the user's shell (cmd.exe on Windows), home directory, inherited environment, 5000 scrollback lines, 32 sessions. Host options are trusted configuration; remote clients may choose ids/dimensions but cannot override shell/env/cwd. The token already permits arbitrary shell commands, so this is not an execution sandbox.
+`new TerminalHost({shell,shellProfile,args,cwd,env,scrollback,maxSessions})` defaults to the user's shell (cmd.exe on Windows), home directory, inherited environment, 5000 scrollback lines, 32 sessions. Host options are trusted configuration; remote clients may choose ids/dimensions but cannot override shell/env/cwd. The token already permits arbitrary shell commands, so this is not an execution sandbox.
 
 - `create({id,cols?,rows?})`: returns SessionInfo synchronously. Same id returns the same session, including an exited session, until close removes it.
 - `list()`: returns running and retained exited sessions.
@@ -75,3 +75,9 @@ Input/frame bounds, session caps and slow-consumer disconnects constrain memory 
 ## Installation
 
 Build and pack before consuming. pnpm must allow node-pty install scripts (`pnpm approve-builds` in a consuming app where required). On macOS the package postinstall restores the published spawn-helper executable bit. If your installer disables lifecycle scripts, run `node node_modules/@nowly/terminal/scripts/prepare-pty.mjs` explicitly. Linux may need a compiler/toolchain for node-pty. Never share a node-pty binary across Node/Electron ABI versions.
+
+## Local command startup
+
+`pnpm dev` starts the localhost UI and PTY server together. The demo uses `shellProfile: 'clean'`: zsh `-f`, bash `--noprofile --norc`, fish `--no-config`, PowerShell `-NoLogo -NoProfile`, cmd `/d`. The package default remains `shellProfile: 'user'`, preserving previous behavior. Explicit `args` override profile defaults. Unknown shells require explicit args for clean mode. System startup files and inherited environment are not an isolation boundary.
+
+The current working directory and inherited PATH are available to real local processes. The clean profile skips user aliases and startup hooks; use `pnpm dev:user` to opt into those. E2E runs the same one-command demo on ports 5196/5197 so it does not interrupt the user's demo on 5186/5187. Vite proxies `/terminal` to the PTY server, keeping the browser connection on the UI origin.
