@@ -257,6 +257,7 @@ test("Codex profile launches PTY and restores structured activity after reload",
     TERMINAL_CWD: fixture,
     SHELL: "/bin/zsh",
     ZDOTDIR: fixture,
+    FAKE_MODE: "final-message",
     TERMINAL_EXAMPLE_BACKGROUND: "1",
     TERMINAL_EXAMPLE_USER_DATA: join(fixture, "app"),
     TERMINAL_CODEX_EXECUTABLE: process.execPath,
@@ -278,11 +279,39 @@ test("Codex profile launches PTY and restores structured activity after reload",
     await expect(page.locator('[data-agent-kind="task.started"]')).toHaveCount(
       1,
     );
+    const finalReply = () =>
+      page.evaluate(async () => {
+        const api = (window as any).terminal;
+        const sessions = await api.request("list", {});
+        return new Promise<string | undefined>((resolve, reject) => {
+          const off = api.subscribe((event: any) => {
+            if (
+              event.type === "snapshot" &&
+              event.sessionId === sessions[0].id
+            ) {
+              off();
+              resolve(
+                event.snapshot.agentEvents?.find(
+                  (e: any) => e.kind === "task.completed",
+                )?.finalMessage,
+              );
+            }
+          });
+          api
+            .request("attach", { id: sessions[0].id })
+            .catch((error: unknown) => {
+              off();
+              reject(error);
+            });
+        });
+      });
+    await expect.poll(finalReply).toBe("FINAL_REPLY_42");
     await page.reload();
     await expect(page.locator('[data-agent-kind="task.started"]')).toHaveCount(
       1,
     );
     await expect(page.locator(".nt-agent-activity")).toContainText("Codex");
+    await expect.poll(finalReply).toBe("FINAL_REPLY_42");
   } catch (error) {
     const page = await app.firstWindow();
     console.error("Codex fixture UI:", await page.locator("body").innerText());

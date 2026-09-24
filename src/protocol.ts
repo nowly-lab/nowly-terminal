@@ -45,6 +45,10 @@ export interface AgentEvent {
   itemId?: string;
   tool?: string;
   status?: string;
+  /** Last assistant reply on successful completion, when available. */
+  finalMessage?: string;
+  /** True when finalMessage exceeds the 8 KiB UTF-8 limit. */
+  finalMessageTruncated?: boolean;
 }
 export type TerminalEvent =
   | AgentEvent

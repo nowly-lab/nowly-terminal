@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-09-24T12:20:11.388Z",
+  "verifiedAt": "2026-09-24T12:27:25.952Z",
   "transport": "Codex TUI + private Unix app-server",
   "task": "Read two numbers; delegate one addition; wait and report 42",
   "events": [
@@ -8,19 +8,19 @@
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 1,
-      "timestamp": "2026-09-24T12:19:51.726Z",
+      "timestamp": "2026-09-24T12:27:10.776Z",
       "kind": "session.started",
-      "threadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810"
+      "threadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff"
     },
     {
       "type": "agent",
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 2,
-      "timestamp": "2026-09-24T12:19:51.782Z",
+      "timestamp": "2026-09-24T12:27:10.814Z",
       "kind": "task.started",
-      "threadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-9d5e-7073-a298-a34ce9ac0be1",
+      "threadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-5056-70b2-93d4-401d99db1c22",
       "status": "started"
     },
     {
@@ -28,37 +28,33 @@
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 3,
-      "timestamp": "2026-09-24T12:19:58.868Z",
-      "kind": "tool.started",
-      "threadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-9d5e-7073-a298-a34ce9ac0be1",
-      "itemId": "exec-aeb0230b-d1bd-4dfb-a0de-b915dfa53865",
-      "tool": "commandExecution",
-      "status": "inProgress"
+      "timestamp": "2026-09-24T12:27:17.758Z",
+      "kind": "subagent.spawned",
+      "threadId": "01a0d362-6b2c-7cf2-94b8-26fc940eac3f",
+      "parentThreadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff"
     },
     {
       "type": "agent",
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 4,
-      "timestamp": "2026-09-24T12:19:58.868Z",
-      "kind": "tool.completed",
-      "threadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-9d5e-7073-a298-a34ce9ac0be1",
-      "itemId": "exec-aeb0230b-d1bd-4dfb-a0de-b915dfa53865",
-      "tool": "commandExecution",
-      "status": "completed"
+      "timestamp": "2026-09-24T12:27:17.767Z",
+      "kind": "subagent.started",
+      "threadId": "01a0d362-6b2c-7cf2-94b8-26fc940eac3f",
+      "parentThreadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-6b7e-72e1-a1e6-d77dc5179806",
+      "status": "started"
     },
     {
       "type": "agent",
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 5,
-      "timestamp": "2026-09-24T12:19:58.917Z",
+      "timestamp": "2026-09-24T12:27:20.478Z",
       "kind": "tool.started",
-      "threadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-9d5e-7073-a298-a34ce9ac0be1",
-      "itemId": "exec-48e9093a-0c7b-4735-b919-ac63a203a5ff",
+      "threadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-5056-70b2-93d4-401d99db1c22",
+      "itemId": "exec-7d22b5ca-c435-424d-8b9a-e84971ccdaae",
       "tool": "commandExecution",
       "status": "inProgress"
     },
@@ -67,11 +63,11 @@
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 6,
-      "timestamp": "2026-09-24T12:19:58.917Z",
+      "timestamp": "2026-09-24T12:27:20.478Z",
       "kind": "tool.completed",
-      "threadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-9d5e-7073-a298-a34ce9ac0be1",
-      "itemId": "exec-48e9093a-0c7b-4735-b919-ac63a203a5ff",
+      "threadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-5056-70b2-93d4-401d99db1c22",
+      "itemId": "exec-7d22b5ca-c435-424d-8b9a-e84971ccdaae",
       "tool": "commandExecution",
       "status": "completed"
     },
@@ -80,33 +76,39 @@
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 7,
-      "timestamp": "2026-09-24T12:20:02.893Z",
-      "kind": "subagent.spawned",
-      "threadId": "01a0d35b-c883-7d93-b067-0c9c6bdecaaa",
-      "parentThreadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810"
+      "timestamp": "2026-09-24T12:27:21.730Z",
+      "kind": "subagent.completed",
+      "threadId": "01a0d362-6b2c-7cf2-94b8-26fc940eac3f",
+      "parentThreadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-6b7e-72e1-a1e6-d77dc5179806",
+      "status": "completed",
+      "finalMessage": "42",
+      "finalMessageTruncated": false
     },
     {
       "type": "agent",
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 8,
-      "timestamp": "2026-09-24T12:20:02.903Z",
-      "kind": "subagent.started",
-      "threadId": "01a0d35b-c883-7d93-b067-0c9c6bdecaaa",
-      "parentThreadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-c8ca-7250-a10c-fa40e0cc8ba5",
-      "status": "started"
+      "timestamp": "2026-09-24T12:27:23.033Z",
+      "kind": "tool.started",
+      "threadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-5056-70b2-93d4-401d99db1c22",
+      "itemId": "call_T0PeZ55ZdWZBEsF9f1ePfOEU",
+      "tool": "wait",
+      "status": "inProgress"
     },
     {
       "type": "agent",
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 9,
-      "timestamp": "2026-09-24T12:20:07.761Z",
-      "kind": "subagent.completed",
-      "threadId": "01a0d35b-c883-7d93-b067-0c9c6bdecaaa",
-      "parentThreadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-c8ca-7250-a10c-fa40e0cc8ba5",
+      "timestamp": "2026-09-24T12:27:23.037Z",
+      "kind": "tool.completed",
+      "threadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-5056-70b2-93d4-401d99db1c22",
+      "itemId": "call_T0PeZ55ZdWZBEsF9f1ePfOEU",
+      "tool": "wait",
       "status": "completed"
     },
     {
@@ -114,11 +116,13 @@
       "provider": "codex",
       "sessionId": "codex-smoke",
       "sequence": 10,
-      "timestamp": "2026-09-24T12:20:11.162Z",
+      "timestamp": "2026-09-24T12:27:25.766Z",
       "kind": "task.completed",
-      "threadId": "01a0d35b-9ca5-7663-b2e7-445dc86d7810",
-      "turnId": "01a0d35b-9d5e-7073-a298-a34ce9ac0be1",
-      "status": "completed"
+      "threadId": "01a0d362-4fd7-7391-8be1-83d3e318f6ff",
+      "turnId": "01a0d362-5056-70b2-93d4-401d99db1c22",
+      "status": "completed",
+      "finalMessage": "CODEX_CAPTURE_OK 42",
+      "finalMessageTruncated": false
     }
   ]
 }

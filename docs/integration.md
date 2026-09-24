@@ -120,7 +120,7 @@ Browser E2E explicitly uses clean mode on 5196/5197. Native E2E uses normal mode
 
 ## Packaged CLI
 
-The npm package `@nowly/terminal@0.2.0` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
+The npm package `@nowly/terminal@0.2.1` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
 
 The CLI defaults to normal login/interactive startup; `--profile clean` explicitly skips optional startup configuration. `--shell` picks the shell executable. Ctrl+C closes sockets and owned sessions. The CLI is a backend entry point; mount the browser or React exports in the embedding application for the UI.
 
@@ -164,10 +164,28 @@ Architecture: renderer → existing IPC → terminal daemon → PTY → real Cod
 
 Each agent event contains provider=codex, sessionId, sequence, timestamp, kind and threadId (empty before initialization failure), with optional parentThreadId, turnId, itemId, tool and status. Kinds: session.started; task.started/completed/failed/interrupted; subagent.spawned/started/completed/failed/interrupted; tool.started/completed; connection.failed. Completion means a Codex turn completed, independently of PTY exit. Tool completion carries status and does not automatically mean success. Only descendants proven by Codex thread metadata/collaboration events are included. Unrecognized notifications never imply completion.
 
-The daemon stores the most recent200 agent events per terminal. On snapshot, replace that terminal's replay window and deduplicate live events by sessionId+sequence. Sequence is independent of terminal output sequence and resets with a new terminal instance. This is an in-memory bounded event feed, not a durable exactly-once queue. Persist the events in your application if a full audit history is required. Prompts, raw tool results, plugin definitions and credentials are not copied into the agent event feed. The TUI necessarily receives its normal protocol content. Backend frames are bounded at64MiB to accommodate large Codex plugin catalogs; event metadata remains small.
+The daemon stores the most recent200 agent events per terminal. On snapshot, replace that terminal's replay window and deduplicate live events by sessionId+sequence. Sequence is independent of terminal output sequence and resets with a new terminal instance. This is an in-memory bounded event feed, not a durable exactly-once queue. Persist the events in your application if a full audit history is required. Prompt, raw tool result, plugin definition and credential fields are not selected from the protocol; the final assistant reply itself may contain user data. The TUI necessarily receives its normal protocol content. Backend frames are bounded at64MiB to accommodate large Codex plugin catalogs; event metadata remains small.
 
 Version0.2.0 changes direct `TerminalHost.create` to return Promise<SessionInfo>. Await it before writing, attaching or inspecting sessions. The transport API was already asynchronous and is unchanged. `pnpm test:codex` explicitly runs a real read-only model task with one delegated child; it is not part of the normal unit test suite. `NOWLY_LIVE_CODEX=1 pnpm test:native --grep 'live Codex'` verifies the actual native UI.
 
 Codex mode is verified with zsh (normal user initialization) and a controlled bash initialization fixture. Use zsh/bash for the native sample. macOS `/bin/sh -il` in the verified environment closes inherited protocol file descriptors and is not supported for Codex mode; startup scripts must preserve inherited descriptors. This limitation does not affect shell-only mode.
 
 Thread switching preserves the per-terminal event sequence and the last 200 events. Ownership tracking is capped at 128 threads; extra children beyond that bound are ignored. When a new root needs capacity, the oldest ownership subtree is evicted together. This event feed is a bounded activity view, not an audit log.
+
+### Final assistant replies (0.2.1)
+
+Successful `task.completed` and `subagent.completed` events include optional `finalMessage: string` and `finalMessageTruncated: boolean`. The text is also retained in snapshot replay. Final replies can contain user data; event consumers should treat the text like the original Codex reply.
+
+`item/completed` assistant messages and `turn/completed` items supply the last final answer for the same thread and turn. Explicit `phase: final_answer` takes precedence; phase-less legacy messages are used only when no explicit final exists. Commentary, reasoning, prompts and tool output are excluded. Child collaboration completion can supply its final message when turn notifications were missed. If no final reply is available, the fields are omitted; failed/interrupted events do not contain a successful final reply.
+
+Each message is limited to 8 KiB of UTF-8 without splitting a Unicode character. `finalMessageTruncated` is true when clipped. Existing 200-event replay and 128-thread tracking bounds still apply. This supersedes the metadata-only completion event format in 0.2.0.
+
+```ts
+transport.subscribe(event => {
+  if (event.type === "agent" && event.kind === "task.completed") {
+    console.log(event.finalMessage); // e.g. "CODEX_CAPTURE_OK 42"
+  }
+});
+```
+
+After updating, explicitly stop the old daemon using the sample's Stop all terminals menu before restarting. A normal window reload reconnects to the existing process and does not load a new daemon version.

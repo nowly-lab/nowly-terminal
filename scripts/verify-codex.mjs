@@ -67,6 +67,14 @@ try {
     stripVTControlCharacters(screen),
     /CODEX_CAPTURE_OK\s*[:=-]?\s*42/,
   );
+  assert.match(
+    captured.find((e) => e.kind === "task.completed")?.finalMessage ?? "",
+    /CODEX_CAPTURE_OK\s*[:=-]?\s*42/,
+  );
+  assert.match(
+    captured.find((e) => e.kind === "subagent.completed")?.finalMessage ?? "",
+    /42/,
+  );
   const output = new URL("../docs/evidence/codex-events.json", import.meta.url);
   mkdirSync(new URL("../docs/evidence/", import.meta.url), { recursive: true });
   writeFileSync(

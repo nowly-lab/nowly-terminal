@@ -112,3 +112,14 @@ Final checks on 2026-09-24:
 - The standalone native archive passes fresh-cache install, native rebuild and all four Electron tests, including the real read-only Codex task and child completion followed by reload/replay (19.5 seconds for the live test). The screenshot shows completion events; the terminal also displays Codex's account usage reminder. No model/usage settings were changed.
 - The final standalone Codex smoke passes with the actual result CODEX_CAPTURE_OK 42 and only the user root in task events. The updated metadata recording is docs/evidence/codex-events.json.
 - Independent review findings are resolved; no deferred findings. Version 0.2.0 library/native archives are rebuilt. Work remains on codex/terminal-toolkit; no new push or registry publication.
+
+## Final assistant replies — 0.2.1
+
+Completion events now carry optional finalMessage and finalMessageTruncated. The reply is isolated by thread/turn, preferring the explicit final-answer phase and falling back to legacy assistant messages. Commentary/reasoning/tool outputs are excluded. A child completion observed through collaboration can carry its reply. The same event, including text, is restored by snapshot replay. Text is capped at 8 KiB UTF-8; Unicode boundaries and leading BOM text are preserved.
+
+- Five new normalization checks initially failed and passed after implementation; a Unicode/BOM preservation regression also failed before correction. Tests cover parent/child/next-turn separation, last final answer selection, legacy phases, missing/incomplete messages, failure/interruption exclusion, replay, child wait results and text bounds.
+- The real read-only Codex smoke passed with finalMessage=CODEX_CAPTURE_OK 42 on task.completed and finalMessage=42 on subagent.completed. The updated recording is docs/evidence/codex-events.json.
+- Daemon transport/reconnection retains the text. The isolated native archive passed fresh-cache installation, build and three Electron tests, including final reply access through renderer IPC before and after reload. The optional live native model test was not repeated; the actual model was verified by the standalone smoke.
+- The bounded design uses existing completion events rather than adding an API; no new permissions or UI are required. The normal 200-event in-memory replay limit applies, and missing replies remain absent rather than fabricated. Existing event consumers remain compatible; the reply field intentionally adds assistant text to the former metadata-only completion event.
+
+Final TypeScript/build checks and all 52 unit/integration tests pass. The local 0.2.1 native sample and both distribution archives were rebuilt after the Unicode correction. Changes remain committed locally; no publication was performed.

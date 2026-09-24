@@ -207,3 +207,40 @@ test("explicit shutdown waits for and terminates a shell that ignores hangup", a
       } catch {}
   }
 });
+
+test("Codex final reply survives daemon transport and reconnect snapshot", async () => {
+  const opts = options();
+  const first = await ensureTerminalDaemon({
+    ...opts,
+    hostOptions: {
+      ...opts.hostOptions,
+      env: { FAKE_MODE: "final-message" },
+      codex: {
+        executable: process.execPath,
+        args: [resolve("tests/fixtures/codex-server.mjs")],
+      },
+    },
+  });
+  clients.push(first);
+  const live: any[] = [];
+  first.subscribe((e) => {
+    if (e.type === "agent") live.push(e);
+  });
+  await first.request("create", { id: "reply" });
+  await first.request("attach", { id: "reply" });
+  await expect
+    .poll(() => live.find((e) => e.kind === "task.completed")?.finalMessage)
+    .toBe("FINAL_REPLY_42");
+  first.dispose();
+  const second = await connectTerminalDaemon(opts.runtimeDir);
+  clients.push(second);
+  let replay: any[] = [];
+  second.subscribe((e) => {
+    if (e.type === "snapshot") replay = e.snapshot.agentEvents ?? [];
+  });
+  await second.request("attach", { id: "reply" });
+  expect(replay.find((e) => e.kind === "task.completed")).toMatchObject({
+    finalMessage: "FINAL_REPLY_42",
+    finalMessageTruncated: false,
+  });
+});

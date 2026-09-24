@@ -67,6 +67,33 @@ if (process.argv.includes("app-server")) {
             params: { thread: { id: threadId, source: "vscode" } },
           }) + "\n",
         );
+        if (process.env.FAKE_MODE === "final-message")
+          setTimeout(() => {
+            process.stdout.write(
+              JSON.stringify({
+                method: "item/completed",
+                params: {
+                  threadId,
+                  turnId: "turn",
+                  item: {
+                    type: "agentMessage",
+                    id: "answer",
+                    text: "FINAL_REPLY_42",
+                    phase: "final_answer",
+                  },
+                },
+              }) + "\n",
+            );
+            process.stdout.write(
+              JSON.stringify({
+                method: "turn/completed",
+                params: {
+                  threadId,
+                  turn: { id: "turn", status: "completed", items: [] },
+                },
+              }) + "\n",
+            );
+          }, 100);
         setTimeout(
           () =>
             process.stdout.write(

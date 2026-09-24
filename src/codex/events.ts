@@ -7,13 +7,49 @@ const str = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 && value.length <= 160
     ? value
     : undefined;
-/** Metadata-only projection of the app-server stream. Never forwards prompts or output. */
+type FinalMessage = Pick<AgentEvent, "finalMessage" | "finalMessageTruncated">;
+const finalMessage = (text: unknown): FinalMessage => {
+  if (typeof text !== "string") return {};
+  // Limit allocation as well as retained bytes. Streaming decode drops an incomplete
+  // trailing code point instead of inserting a replacement character.
+  const bytes = Buffer.from(text.slice(0, 8192));
+  const clipped = bytes.subarray(0, 8192);
+  const value = new TextDecoder("utf-8", { ignoreBOM: true }).decode(clipped, {
+    stream: true,
+  });
+  return {
+    finalMessage: value,
+    finalMessageTruncated: value.length < text.length,
+  };
+};
+/** Lifecycle metadata plus bounded final replies; never forwards prompts or reasoning. */
 export class CodexEvents {
   readonly threads = new Map<string, string | undefined>();
   readonly history: AgentEvent[] = [];
   private seen = new Set<string>();
   private sequence = 0;
   private childStatus = new Map<string, string>();
+  private replies = new Map<
+    string,
+    { turnId: string; explicit: boolean; message: FinalMessage }
+  >();
+  private rememberReply(id: string, turnId: string, value: unknown) {
+    const item = record(value);
+    if (
+      item.type !== "agentMessage" ||
+      typeof item.text !== "string" ||
+      (item.phase != null && item.phase !== "final_answer")
+    )
+      return;
+    const previous = this.replies.get(id);
+    const explicit = item.phase === "final_answer";
+    if (previous?.turnId === turnId && previous.explicit && !explicit) return;
+    this.replies.set(id, {
+      turnId,
+      explicit,
+      message: finalMessage(item.text),
+    });
+  }
   constructor(
     private sessionId: string,
     public rootThreadId: string,
@@ -31,6 +67,7 @@ export class CodexEvents {
       for (const thread of remove) {
         this.threads.delete(thread);
         this.childStatus.delete(thread);
+        this.replies.delete(thread);
       }
     }
     this.threads.set(id, undefined);
@@ -107,6 +144,18 @@ export class CodexEvents {
         !["started", "completed", "failed", "interrupted"].includes(status)
       )
         return [];
+      let reply: FinalMessage = {};
+      if (status === "started") {
+        if (this.replies.get(id)?.turnId !== turnId) this.replies.delete(id);
+      } else {
+        if (status === "completed" && Array.isArray(turn.items))
+          for (const item of turn.items) this.rememberReply(id, turnId, item);
+        const saved = this.replies.get(id);
+        if (saved?.turnId === turnId) {
+          if (status === "completed") reply = saved.message;
+          this.replies.delete(id);
+        }
+      }
       if (child) {
         if (this.childStatus.get(id) === `${turnId}:${status}`) return [];
         if (this.childStatus.get(id) === `observed:${status}`) {
@@ -119,7 +168,7 @@ export class CodexEvents {
         `turn:${id}:${turnId}:${status}`,
         `${prefix}.${status}` as AgentEventKind,
         id,
-        { turnId, status },
+        { turnId, status, ...reply },
       );
     }
     if (method === "item/started" || method === "item/completed") {
@@ -128,6 +177,8 @@ export class CodexEvents {
         type = str(item.type),
         turnId = str(p.turnId);
       if (!itemId || !type) return [];
+      if (method === "item/completed" && turnId)
+        this.rememberReply(id, turnId, item);
       const result: AgentEvent[] = [];
       if (type === "subAgentActivity") {
         const agent = str(item.agentThreadId);
@@ -151,12 +202,20 @@ export class CodexEvents {
             const last = this.childStatus.get(agent);
             if (!last?.endsWith(`:${status}`)) {
               this.childStatus.set(agent, `observed:${status}`);
+              this.replies.delete(agent);
               result.push(
                 ...this.add(
                   `child-state:${agent}:${itemId}:${status}`,
                   `subagent.${status}` as AgentEventKind,
                   agent,
-                  { status },
+                  {
+                    status,
+                    ...(status === "completed"
+                      ? finalMessage(
+                          record(record(item.agentsStates)[agent]).message,
+                        )
+                      : {}),
+                  },
                 ),
               );
             }

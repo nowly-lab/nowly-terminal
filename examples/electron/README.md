@@ -8,7 +8,7 @@
 
 ## 配布されたサンプルを起動
 
-`nowly-terminal-native-example-0.2.0.tgz` を展開し、その中の `examples/electron` で:
+`nowly-terminal-native-example-0.2.1.tgz` を展開し、その中の `examples/electron` で:
 
 ```sh
 npm install
@@ -17,7 +17,7 @@ npm run rebuild
 npm start
 ```
 
-展開したディレクトリ構成を保ってください。2階層上にある `nowly-terminal-0.2.0.tgz` が依存先です。`ELECTRON_RUN_AS_NODE` を設定している特殊な環境では、起動前に解除してください。
+展開したディレクトリ構成を保ってください。2階層上にある `nowly-terminal-0.2.1.tgz` が依存先です。`ELECTRON_RUN_AS_NODE` を設定している特殊な環境では、起動前に解除してください。
 
 ## 他のアプリへ組み込む場所
 

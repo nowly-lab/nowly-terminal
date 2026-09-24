@@ -28,7 +28,7 @@ pnpm native       # ネイティブウィンドウを起動
 
 通常のアプリ終了ではシェルを保持し、再起動時に同じPID・変数・出力へ復帰します。ペインの×はそのシェルを終了し、アプリメニューの「すべてのターミナルを終了してアプリを終了」で常駐プロセスごと停止します。
 
-[組み込みサンプルと手順](examples/electron/README.md)。実パッケージだけをimportし、Orcaやこのリポジトリのsrcには依存しません。`pnpm native:pack` でサンプルソースとライブラリtgzをまとめた `nowly-terminal-native-example-0.2.0.tgz` を作れます。
+[組み込みサンプルと手順](examples/electron/README.md)。実パッケージだけをimportし、Orcaやこのリポジトリのsrcには依存しません。`pnpm native:pack` でサンプルソースとライブラリtgzをまとめた `nowly-terminal-native-example-0.2.1.tgz` を作れます。
 
 ## 他のアプリで使う
 
@@ -37,7 +37,7 @@ pnpm native       # ネイティブウィンドウを起動
 ```sh
 pnpm pack  # 配布前に自動ビルドされます
 # 組み込み先のプロジェクトで
-pnpm add /path/to/nowly-terminal/nowly-terminal-0.2.0.tgz
+pnpm add /path/to/nowly-terminal/nowly-terminal-0.2.1.tgz
 ```
 
 インストール済みパッケージには `nowly-terminal` コマンドも含まれます。サーバー用コードを書かずに、次のように起動できます。
@@ -139,3 +139,5 @@ pnpm exec vite build --config examples/react/vite.config.ts
 タスク開始・完了・失敗・中断、ツール実行、子エージェントの起動・完了を `transport.subscribe` で取得できます。画面下の履歴も同じイベントを利用します。実機でローカルファイル読み取り→子エージェントに足し算を委任→完了まで確認した[取得記録](docs/evidence/codex-events.json)と、[組み込みAPI](docs/integration.md#codex-terminal-profile-and-events)を参照してください。
 
 0.2.0では直接利用する `TerminalHost.create()` が非同期になりました。`await host.create({id: 'terminal'})` に更新してください。transport.requestの呼び方は変わりません。
+
+0.2.1では、完了イベントの `finalMessage` から最後の返答も取得できます。親タスクと子エージェントに対応し、再接続時の履歴にも含まれます。本文はUTF-8で8 KiBまでで、省略した場合は `finalMessageTruncated: true` になります。返答が届いていない場合は項目自体を省略します。
