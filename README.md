@@ -2,7 +2,7 @@
 
 Orcaのターミナル構成を、他のアプリへ組み込みやすい独立パッケージとして再実装したものです。Node側の実PTY、通信、画面復元、ブラウザUI、Reactのタブ・分割UIを含みます。Orca本体は実行時に不要です。
 
-## 起動
+## リポジトリ内のデモを起動
 
 Node.js 22以上とpnpmを使用します。
 
@@ -22,13 +22,22 @@ pnpm dev
 まだレジストリへ公開していません。ローカルでパッケージを作ってインストールできます。
 
 ```sh
-pnpm build
-pnpm pack
+pnpm pack  # 配布前に自動ビルドされます
 # 組み込み先のプロジェクトで
-pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.0.tgz
+pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.1.tgz
 ```
 
-サーバー側:
+インストール済みパッケージには `nowly-terminal` コマンドも含まれます。サーバー用コードを書かずに、次のように起動できます。
+
+```sh
+# シークレットはアプリ側にも安全に渡してください。
+export TERMINAL_TOKEN="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
+pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .
+```
+
+`--port`、`--shell`、`--profile clean|user` を指定できます。標準では追加シェル設定を読み込まず、ローカルのPATHを引き継いでコマンドを実行します。UIはアプリ側に組み込み、上のサーバーへ接続します。
+
+アプリのNodeプロセスに直接組み込む場合のサーバー側:
 
 ```ts
 import { createTerminalServer } from '@nowly/terminal/server';
@@ -97,9 +106,12 @@ export function TerminalPanel() {
 pnpm check
 pnpm exec playwright install chromium
 pnpm test:e2e
+pnpm test:package  # 実際の配布ファイルを別プロジェクトへ入れて検証
 pnpm exec vite build --config examples/react/vite.config.ts
 ```
 
 実PTYの入出力・終了・復元、認証拒否、接続復旧、ANSI分割、ブラウザのタブ/分割/再読み込みを検証します。ローカル実行環境はmacOS arm64です。Linux/Windowsの実機検証は未実施です。Windows/Electronではnode-ptyのビルドと対象ランタイムのABI適合が必要です。
+
+配布パッケージには、コンパイル済みコード、型定義、CSS、起動CLI、組み込みガイドを含みます。デモやテストコード、Orca本体は不要です。ESM対応のNode.js 22以上、React UIはReact 18以上を対象にしています。
 
 元実装の出典とライセンスは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。

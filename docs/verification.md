@@ -20,3 +20,12 @@ Limits: Linux/Windows and Electron packaged runtime have not been executed here.
 The user's actual demo showed an empty terminal while user shell initialization ran external tools. The default demo now skips optional startup profiles, preserves inherited PATH, and starts UI + PTY host using one `pnpm dev`. The library retains user-profile behavior by default and exposes the opt-in `shellProfile` setting.
 
 A failing regression test first reproduced `.zshrc` delaying the prompt; with clean startup it passes and executes local `node` and `pwd`. All 14 tests and both Chromium journeys pass. The updated in-app browser was reloaded and `pwd; node --version; printf "LOCAL_COMMAND_OK\\n"` was typed through the terminal UI: output showed the nowly-terminal directory, Node v26.3.1 and LOCAL_COMMAND_OK. The demo remains running on port 5186.
+
+## Distribution package 0.1.1
+
+`@nowly/terminal@0.1.1` includes the `nowly-terminal serve` CLI, browser/React/server entry points, CSS and declarations. `prepack` rebuilds from a clean dist directory. Source checkout demos and tests are excluded from the archive.
+
+- `pnpm check`: 17 tests pass; typecheck and clean build pass.
+- `pnpm test:package`: automatic pack/build, isolated installation, packaged CLI startup, real local Node command through WebSocket/PTY, graceful shutdown, strict consumer TypeScript validation, and React/CSS production build all pass.
+- CLI auth comes from `TERMINAL_TOKEN`; no token is printed. Invalid ports, origins, profile names, unknown and missing options are covered by tests.
+- Artifact: `nowly-terminal-0.1.1.tgz`. npm registry publication was not performed.

@@ -1,6 +1,6 @@
 {
   "name": "@nowly/terminal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "license": "MIT",
   "description": "Embeddable PTY terminal toolkit inspired by Orca",
@@ -39,7 +39,7 @@
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/copy-styles.mjs",
+    "build": "node scripts/clean-build.mjs && tsc -p tsconfig.build.json && node scripts/copy-styles.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
@@ -49,7 +49,9 @@
     "postinstall": "node scripts/prepare-pty.mjs",
     "format": "prettier --write src tests examples scripts *.json *.ts",
     "dev:server": "tsx examples/react/server.ts",
-    "dev:user": "tsx examples/react/dev.ts --user-shell"
+    "dev:user": "tsx examples/react/dev.ts --user-shell",
+    "prepack": "npm run build",
+    "test:package": "node scripts/verify-package.mjs"
   },
   "dependencies": {
     "@xterm/addon-fit": "0.12.0-beta.300",
@@ -93,5 +95,13 @@
       "node-pty",
       "esbuild"
     ]
-  }
+  },
+  "types": "./dist/protocol.d.ts",
+  "bin": {
+    "nowly-terminal": "./dist/cli.js"
+  },
+  "sideEffects": [
+    "**/*.css",
+    "./dist/cli.js"
+  ]
 }

@@ -81,3 +81,11 @@ Build and pack before consuming. pnpm must allow node-pty install scripts (`pnpm
 `pnpm dev` starts the localhost UI and PTY server together. The demo uses `shellProfile: 'clean'`: zsh `-f`, bash `--noprofile --norc`, fish `--no-config`, PowerShell `-NoLogo -NoProfile`, cmd `/d`. The package default remains `shellProfile: 'user'`, preserving previous behavior. Explicit `args` override profile defaults. Unknown shells require explicit args for clean mode. System startup files and inherited environment are not an isolation boundary.
 
 The current working directory and inherited PATH are available to real local processes. The clean profile skips user aliases and startup hooks; use `pnpm dev:user` to opt into those. E2E runs the same one-command demo on ports 5196/5197 so it does not interrupt the user's demo on 5186/5187. Vite proxies `/terminal` to the PTY server, keeping the browser connection on the UI origin.
+
+## Packaged CLI
+
+The npm package `@nowly/terminal@0.1.1` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
+
+The CLI defaults to the clean shell profile; `--profile user` loads normal startup configuration. `--shell` picks the shell executable. Ctrl+C closes sockets and owned sessions. The CLI is a backend entry point; mount the browser or React exports in the embedding application for the UI.
+
+`pnpm pack` runs a clean build automatically, including declarations and CSS. `pnpm test:package` packs, installs into an isolated temporary project, launches the packaged CLI, runs a real local command through WebSocket/PTY, checks shutdown, type-checks a consumer without skipping dependency declarations, and builds its React/CSS bundle. No npm publication or registry credentials are required.

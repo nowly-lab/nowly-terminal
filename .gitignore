@@ -6,3 +6,5 @@ playwright-report/
 .superpowers/
 
 dist-demo/
+
+.DS_Store
