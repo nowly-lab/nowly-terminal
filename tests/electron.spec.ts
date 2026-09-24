@@ -169,12 +169,13 @@ test("native packaged terminal initializes shell, isolates renderer and restores
     expect(errors).toEqual([]);
     await page.getByRole("button", { name: "Close pane" }).first().click();
     await expect.poll(async () => (await sessions()).length).toBe(1);
+    const appProcess = app.process();
     await app.evaluate(({ Menu }) => {
       void Menu.getApplicationMenu()!
         .getMenuItemById("stop-terminals")!
         .click();
     });
-    await expect.poll(() => app.process().exitCode).toBe(0);
+    await expect.poll(() => appProcess.exitCode).toBe(0);
   } finally {
     await app.close().catch(() => {});
     try {

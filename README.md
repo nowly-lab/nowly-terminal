@@ -19,14 +19,16 @@ pnpm dev
 
 ## ネイティブアプリのサンプル
 
-Orcaと同じElectronの構成で、メインプロセスがPTYを所有し、preloadの限定したIPC経由でReact画面へ接続します。WebSocketサーバーを起動せず、ローカルコマンドを実行できます。
+Orcaと同じElectronの構成で、メインプロセスがローカルソケットで専用の常駐プロセスへ接続し、そのプロセスがPTYを所有します。React画面はpreloadのIPCを使います。WebSocketサーバーを起動せず、ローカルコマンドを実行できます。
 
 ```sh
 pnpm native:setup # パッケージ作成・別依存環境へインストール・Electron用の再ビルド
 pnpm native       # ネイティブウィンドウを起動
 ```
 
-[組み込みサンプルと手順](examples/electron/README.md)。実パッケージだけをimportし、Orcaやこのリポジトリのsrcには依存しません。`pnpm native:pack` でサンプルソースとライブラリtgzをまとめた `nowly-terminal-native-example-0.1.2.tgz` を作れます。
+通常のアプリ終了ではシェルを保持し、再起動時に同じPID・変数・出力へ復帰します。ペインの×はそのシェルを終了し、アプリメニューの「すべてのターミナルを終了してアプリを終了」で常駐プロセスごと停止します。
+
+[組み込みサンプルと手順](examples/electron/README.md)。実パッケージだけをimportし、Orcaやこのリポジトリのsrcには依存しません。`pnpm native:pack` でサンプルソースとライブラリtgzをまとめた `nowly-terminal-native-example-0.1.3.tgz` を作れます。
 
 ## 他のアプリで使う
 
@@ -35,7 +37,7 @@ pnpm native       # ネイティブウィンドウを起動
 ```sh
 pnpm pack  # 配布前に自動ビルドされます
 # 組み込み先のプロジェクトで
-pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.2.tgz
+pnpm add /path/to/nowly-terminal/nowly-terminal-0.1.3.tgz
 ```
 
 インストール済みパッケージには `nowly-terminal` コマンドも含まれます。サーバー用コードを書かずに、次のように起動できます。

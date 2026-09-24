@@ -8,6 +8,7 @@
 | `@nowly/terminal/client` | `WebSocketTransport` | Browser, Node 22+ |
 | `@nowly/terminal/browser` | `mountTerminal`, `TerminalHandle` | Browser DOM |
 | `@nowly/terminal/react` | `TerminalView`, `TerminalWorkspace` | React 18+ |
+| `@nowly/terminal/daemon` | Persistent daemon launcher/client | Trusted Node/Electron main |
 | `@nowly/terminal/server` | `TerminalHost`, `createTerminalServer` | Node + node-pty |
 | `@nowly/terminal/styles.css` | Scoped view/workspace styles, imports xterm CSS | CSS-aware bundler |
 
@@ -40,20 +41,46 @@ The container must have nonzero dimensions. React TerminalView supplies its own 
 
 `TerminalWorkspace` supplies tab and pane chrome. It accepts `initialLayout` and `onLayoutChange`; persist layout in the host app if required. The demo persists it in localStorage. All panes of a tab use the same orientation; nested mixed split trees are not supported. Closing the last pane leaves an empty workspace with a New tab button. Resizing uses the native bottom-right handle on nonfinal panes. Tab name changes use double click.
 
-## Electron
+## Electron and resident daemon
 
-The runnable `examples/electron` sample uses `TerminalHost` directly in Electron main and `IpcTransport` in the sandboxed renderer. No local server or WebSocket token is required. Run `pnpm native:setup`, then `pnpm native` from the repository root. The standalone source archive includes the library tarball and the sample; see its README for installation.
+The native sample automatically starts or reconnects to a detached daemon owning TerminalHost:
 
-- `main.cjs` owns the host and window. It fixes shell/cwd in trusted main configuration, denies renderer navigation, new windows and permissions, and disposes the host before app quit.
-- `preload.cjs` exposes only terminal `request` / `subscribe` methods on fixed channels, with `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`.
-- `terminal-ipc.mjs` checks the exact window, top frame and local renderer URL; validates methods/parameters; serializes requests and fences work across reloads. Reload detaches listeners while preserving PTYs; closing a pane terminates that PTY.
-- `src/ipc-transport.ts` implements the existing `TerminalTransport`, so `TerminalWorkspace` and `TerminalView` work unchanged.
+```text
+React -> sandboxed preload IPC -> Electron main / DaemonClient
+                                     | local socket
+                              independent daemon -> PTY -> shell
+```
 
-This sample binds one window to one host. For multiple windows, route IPC by sender and own subscriptions per window. The trusted terminal renderer is authorized to execute commands as the OS user; never load untrusted content into it. The sample denies external links rather than opening arbitrary protocols.
+Native integration opens no TCP listener or WebSocket server. Run `pnpm native:setup`, then `pnpm native`. Normal quit disconnects only; reopening restores the same shell PID, variables and output, including output generated while the UI was closed. Closing a pane terminates its shell. The main-process Stop all terminals menu explicitly stops the daemon and every shell. The sample persists its layout in userData.
 
-Electron uses a different native ABI from Node. The sample installs its own dependencies using npm and rebuilds node-pty with `electron-rebuild`; it does not mutate the root Node installation. For a packaged native app, include node-pty's native binary and spawn-helper outside ASAR and preserve executable permissions. This example runs in Electron but does not produce a signed installer.
+The IPC bridge validates sender/window/top-frame/file URL, permits only public terminal methods and fences reloads. The preload exposes request/subscribe/onStatus, never credentials or daemon administration. nodeIntegration stays false, contextIsolation and sandbox stay true. Neither the renderer nor the main-process daemon client imports node-pty.
 
-A separately launched Node server with the WebSocket transport remains supported. Supply a random token and exact allowed origin (`null` only when deliberately using file-origin WebSocket clients). For an existing IPC channel, preserve snapshot-before-live ordering and validate messages on the trusted host. Never import server code into a renderer bundle.
+### Daemon API
+
+```ts
+import { ensureTerminalDaemon, connectTerminalDaemon } from '@nowly/terminal/daemon';
+const transport = await ensureTerminalDaemon({
+  runtimeDir: '/private/application-data/terminal-daemon',
+  hostOptions: { cwd: projectDirectory },
+  // In Electron main: executablePath: process.execPath
+});
+await transport.request('create', { id: 'shell-1' });
+transport.dispose(); // disconnect only; daemon and PTYs remain
+const connection = await connectTerminalDaemon('/private/application-data/terminal-daemon');
+console.log(connection.info()); // version, daemon PID, instance ID; no token
+await connection.shutdown();   // explicit service + all-shell shutdown
+connection.dispose();
+```
+
+Concurrent ensure calls converge on one daemon. connect only attaches and never launches. Existing instances preserve original host configuration/environment; explicit configuration differences are rejected until you stop the old instance or choose another runtime directory. `entryPath` can locate an unpacked daemon entry; `startupTimeoutMs` defaults to 10000. A disconnected client rejects pending calls; call ensure/connect again for a new connection. Dead daemon replacement starts fresh shells, not recovered old processes.
+
+### Runtime ownership and recovery
+
+Use a private per-user directory (0700 on POSIX). The 0600 descriptor contains the local token: never log it or expose it to a renderer. Unix sockets use a short private temporary subdirectory, avoiding macOS pathname limits; Windows uses named pipes plus token authentication. Each daemon binds a unique endpoint and removes only its own descriptor. Windows/Linux execution remains unverified.
+
+Live-but-unreachable daemons and incompatible configuration/metadata fail visibly rather than killing/replacing sessions. `launch.lock` normally disappears after startup; a launcher crash during startup can leave it behind. Verify no launcher is active, move the reported lock aside and retry. The library never blindly clears uncertain ownership or kills an unverified PID.
+
+The sample remains single-window. Multi-window apps must route subscriptions by sender. Terminal renderers execute commands as the OS user: never load untrusted content into them. Native child launch requires Electron's RunAsNode fuse enabled and node-pty rebuilt for that executable. Keep `dist/daemon/entry.js`, native binaries and spawn-helper outside ASAR, and preserve executable permissions. The independent npm installation avoids overwriting the root Node native binary. Signed installers, OS services and disk replay after daemon/OS death are outside this sample.
 
 ## Host API and ownership
 
@@ -93,7 +120,7 @@ Browser E2E explicitly uses clean mode on 5196/5197. Native E2E uses normal mode
 
 ## Packaged CLI
 
-The npm package `@nowly/terminal@0.1.2` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
+The npm package `@nowly/terminal@0.1.3` includes the `nowly-terminal` executable. After installing the local tarball, use `pnpm exec nowly-terminal serve --origin http://localhost:3000 --cwd .` with `TERMINAL_TOKEN` set in the environment. Repeat `--origin` for each exact browser origin; omitted origins allow only origin-less native clients. The server binds loopback and defaults to port 5187. `--port 0` chooses an available port. The token is never printed. `--help` works without loading native PTY dependencies.
 
 The CLI defaults to normal login/interactive startup; `--profile clean` explicitly skips optional startup configuration. `--shell` picks the shell executable. Ctrl+C closes sockets and owned sessions. The CLI is a backend entry point; mount the browser or React exports in the embedding application for the UI.
 
