@@ -53,16 +53,19 @@ export function AgentActivity({ transport }: { transport: TerminalTransport }) {
         Codex activity <span>{events.length} events</span>
       </h2>
       <ol>
-        {events.slice(-40).map((e) => (
-          <li key={`${e.sessionId}:${e.sequence}`} data-agent-kind={e.kind}>
-            <time>{new Date(e.timestamp).toLocaleTimeString()}</time>
-            <strong>{labels[e.kind]}</strong>
-            <span>
-              {e.tool ?? (e.parentThreadId ? "child" : "main")} ·{" "}
-              {e.threadId.slice(0, 8)}
-            </span>
-          </li>
-        ))}
+        {events
+          .slice(-40)
+          .reverse()
+          .map((e) => (
+            <li key={`${e.sessionId}:${e.sequence}`} data-agent-kind={e.kind}>
+              <time>{new Date(e.timestamp).toLocaleTimeString()}</time>
+              <strong>{labels[e.kind]}</strong>
+              <span>
+                {e.tool ?? (e.parentThreadId ? "child" : "main")} ·{" "}
+                {e.threadId.slice(0, 8)}
+              </span>
+            </li>
+          ))}
       </ol>
     </aside>
   );

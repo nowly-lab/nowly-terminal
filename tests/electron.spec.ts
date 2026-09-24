@@ -342,6 +342,7 @@ test("live Codex task and subagent events appear in the native UI", async () => 
     await expect(
       page.locator('[data-agent-kind="tool.completed"]'),
     ).not.toHaveCount(0);
+    await page.locator(".xterm-helper-textarea").press("Escape");
     await page.screenshot({
       path: "test-results/codex-native.png",
       fullPage: true,
