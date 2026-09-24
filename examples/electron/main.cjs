@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { homedir } = require("node:os");
@@ -56,7 +56,17 @@ app
     });
     await window.loadFile(file);
   })
-  .catch((error) => {
-    console.error(error);
-    app.quit();
+  .catch(async (error) => {
+    const message =
+      "ターミナルを起動できませんでした。サンプルのディレクトリで npm run rebuild と npm run build を実行してください。\n\n" +
+      (error instanceof Error ? error.message : String(error));
+    console.error(message);
+    if (process.env.TERMINAL_EXAMPLE_BACKGROUND !== "1")
+      dialog.showErrorBox("Nowly Terminal — 起動エラー", message);
+    quitting = true;
+    try {
+      await dispose?.();
+    } finally {
+      app.exit(1);
+    }
   });

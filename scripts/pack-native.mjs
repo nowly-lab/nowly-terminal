@@ -33,6 +33,22 @@ try {
     join(root, `nowly-terminal-${version}.tgz`),
     join(folder, `nowly-terminal-${version}.tgz`),
   );
+  // Regenerate the local dependency's integrity against this exact build.
+  run(
+    "npm",
+    [
+      "install",
+      "--package-lock-only",
+      "--ignore-scripts",
+      "--no-audit",
+      `../../nowly-terminal-${version}.tgz`,
+    ],
+    join(folder, "examples/electron"),
+  );
+  copyFileSync(
+    join(folder, "examples/electron/package-lock.json"),
+    join(root, "examples/electron/package-lock.json"),
+  );
   copyFileSync(
     join(root, "examples/electron/README.md"),
     join(folder, "README.md"),

@@ -112,6 +112,19 @@ export function TerminalWorkspace({
     return { tabs: [tab], activeTab: tab.id };
   });
   const [error, setError] = useState("");
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  function finishRename(tabId: string) {
+    const title = titleDraft.trim();
+    if (title)
+      setLayout((value) => ({
+        ...value,
+        tabs: value.tabs.map((tab) =>
+          tab.id === tabId ? { ...tab, title } : tab,
+        ),
+      }));
+    setRenaming(null);
+  }
   useEffect(() => {
     onLayoutChange?.(layout);
   }, [layout, onLayoutChange]);
@@ -152,29 +165,47 @@ export function TerminalWorkspace({
     <div className={`nt-workspace ${className ?? ""}`} style={style}>
       <header className="nt-toolbar">
         <div className="nt-tabs" role="tablist" aria-label="Terminals">
-          {layout.tabs.map((tab) => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={tab.id === layout.activeTab}
-              onDoubleClick={() => {
-                const title = window.prompt("Terminal name", tab.title);
-                if (title?.trim())
-                  setLayout((value) => ({
-                    ...value,
-                    tabs: value.tabs.map((t) =>
-                      t.id === tab.id ? { ...t, title: title.trim() } : t,
-                    ),
-                  }));
-              }}
-              onClick={() =>
-                setLayout((value) => ({ ...value, activeTab: tab.id }))
-              }
-            >
-              <span className="nt-tab-icon">›_</span>
-              {tab.title}
-            </button>
-          ))}
+          {layout.tabs.map((tab) =>
+            renaming === tab.id ? (
+              <input
+                key={tab.id}
+                className="nt-tab-name"
+                aria-label="Terminal name"
+                autoFocus
+                value={titleDraft}
+                onFocus={(event) => event.currentTarget.select()}
+                onChange={(event) => setTitleDraft(event.target.value)}
+                onBlur={() => finishRename(tab.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    finishRename(tab.id);
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setRenaming(null);
+                  }
+                }}
+              />
+            ) : (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={tab.id === layout.activeTab}
+                onDoubleClick={() => {
+                  setTitleDraft(tab.title);
+                  setRenaming(tab.id);
+                }}
+
+                onClick={() =>
+                  setLayout((value) => ({ ...value, activeTab: tab.id }))
+                }
+              >
+                <span className="nt-tab-icon">›_</span>
+                {tab.title}
+              </button>
+            ),
+          )}
         </div>
         <div className="nt-tools">
           <button

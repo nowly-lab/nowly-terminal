@@ -79,3 +79,35 @@ test.skipIf(!existsSync("/bin/zsh"))(
     }
   },
 );
+
+test.skipIf(!existsSync("/bin/zsh"))(
+  "startup terminal queries receive a reply before any view attaches",
+  async () => {
+    const dir = mkdtempSync(join(tmpdir(), "terminal-query-"));
+    writeFileSync(
+      join(dir, ".zshrc"),
+      "stty -echo -icanon\nprintf '\\033[6n'\nIFS= read -r -t 2 -d R reply\nif [[ $reply == $'\\e['* ]]; then print QUERY_REPLIED; fi\nstty echo icanon\nPS1='QUERY_READY> '\n",
+    );
+    const host = new TerminalHost({
+      shell: "/bin/zsh",
+      cwd: dir,
+      env: { ZDOTDIR: dir },
+    });
+    try {
+      host.create({ id: "query" });
+      await expect
+        .poll(async () => (await host.snapshot("query")).ansi, {
+          timeout: 3500,
+        })
+        .toContain("QUERY_REPLIED");
+    } finally {
+      await host.dispose();
+      rmSync(dir, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
+    }
+  },
+);

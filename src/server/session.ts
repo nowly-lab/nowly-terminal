@@ -60,6 +60,16 @@ export class Session {
       throw error;
     }
     this.subscriptions.push(
+      // Startup queries may arrive before a renderer attaches. A snapshot cannot
+      // replay a consumed query; answer it here only while no live view owns it.
+      this.terminal.onData((reply) => {
+        if (
+          !this.disposed &&
+          this.exitCode === undefined &&
+          this.listeners.size === 0
+        )
+          this.process.write(reply);
+      }),
       this.process.onData((data) => this.ingest(data)),
       this.process.onExit(({ exitCode }) => {
         void this.enqueue(() => {

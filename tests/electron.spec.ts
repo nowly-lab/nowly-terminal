@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron } from "@playwright/test";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, copyFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createRequire } from "node:module";
@@ -54,6 +55,12 @@ test("native packaged terminal initializes shell, isolates renderer and restores
       process: "undefined",
       keys: ["request", "subscribe"],
     });
+    await page.getByRole("tab").first().dblclick();
+    await page
+      .getByRole("textbox", { name: "Terminal name" })
+      .fill("Native shell");
+    await page.getByRole("textbox", { name: "Terminal name" }).press("Enter");
+    await expect(page.getByRole("tab", { name: "Native shell" })).toBeVisible();
     const sessions = () =>
       page.evaluate(() => (window as any).terminal.request("list", {}));
     const original = (await sessions())[0];
@@ -129,6 +136,43 @@ test("native packaged terminal initializes shell, isolates renderer and restores
       )
       .toBe(true);
     rmSync(fixture, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
+  }
+});
+
+test("native initialization failure reports rebuild guidance and exits unsuccessfully", async () => {
+  const example = resolve(
+    process.env.TERMINAL_NATIVE_EXAMPLE ?? "examples/electron",
+  );
+  const failure = mkdtempSync(join(example, ".startup-failure-"));
+  copyFileSync(join(example, "main.cjs"), join(failure, "main.cjs"));
+  const env = {
+    ...process.env,
+    TERMINAL_EXAMPLE_BACKGROUND: "1",
+    TERMINAL_EXAMPLE_USER_DATA: join(failure, "user-data"),
+  };
+  delete (env as NodeJS.ProcessEnv).ELECTRON_RUN_AS_NODE;
+  try {
+    const child = spawn(
+      createRequire(join(example, "package.json"))("electron"),
+      [join(failure, "main.cjs")],
+      { env, stdio: ["ignore", "pipe", "pipe"] },
+    );
+    let errors = "";
+    child.stderr.on("data", (chunk) => (errors += chunk));
+    const timer = setTimeout(() => child.kill("SIGKILL"), 15000);
+    const code = await new Promise<number | null>((resolve, reject) => {
+      child.on("error", reject);
+      child.on("exit", resolve);
+    }).finally(() => clearTimeout(timer));
+    expect(code).toBe(1);
+    expect(errors).toContain("npm run rebuild");
+  } finally {
+    rmSync(failure, {
       recursive: true,
       force: true,
       maxRetries: 5,

@@ -119,6 +119,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 pnpm native:setup
 pnpm test:native  # 非表示のElectronでシェル初期化・IPC・復元を検証
+pnpm test:native-package  # サンプル配布ファイルを新しい環境へ展開して検証
 pnpm test:package  # 実際の配布ファイルを別プロジェクトへ入れて検証
 pnpm exec vite build --config examples/react/vite.config.ts
 ```

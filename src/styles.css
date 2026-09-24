@@ -193,3 +193,15 @@
   flex: 1;
   color: var(--nt-muted);
 }
+
+.nt-tab-name {
+  width: 180px;
+  min-width: 80px;
+  margin: 6px;
+  padding: 0 8px;
+  border: 1px solid #9eb8f2;
+  border-radius: 4px;
+  color: inherit;
+  background: #101419;
+  font: inherit;
+}

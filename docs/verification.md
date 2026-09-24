@@ -42,3 +42,21 @@ This revision supersedes the earlier clean-default workaround: library, CLI, bro
 ![Verified native terminal](media/native-terminal.png)
 
 This is a runnable Electron source example, not a signed application installer. Linux/Windows native execution remains unverified.
+
+Final regression checks for 0.1.2:
+
+- 19 host/transport/startup tests pass, including cursor-position query replies before a renderer attaches; attached views retain live query ownership.
+- Independent review findings reproduced before fixes: stale tarball integrity on fresh-cache installation, unsupported Electron `window.prompt` rename, and initialization failure incorrectly exiting successfully. All fixed with regression coverage.
+- `pnpm test:native-package` passes: packs, checks exact tarball integrity, installs with a fresh npm cache in a separate directory, rebuilds native dependencies, builds React, and runs both native tests. Rename, isolation, shell startup, restore, process shutdown and failure guidance are covered.
+- `pnpm test:package` passes for the packaged CLI, actual local command and independent TypeScript/React consumer. Registry publication was not performed.
+
+Actual user-profile smoke also passes in hidden Electron: normal `.zshrc` startup completes, a local command executes, and zsh reports login/interactive options enabled. An old pyenv rehash lock was preventing normal startup; all remaining rehash processes were newer than the lock and no process had it open. The stale lock was moved to `~/.pyenv/.nowly-terminal-backups/.pyenv-shim-20260924-195722`. No shell configuration files were changed.
+
+Implementation decisions and rollback notes:
+
+- Kept the existing isolated `nowly-terminal` repository/branch at the user-requested sibling location. No new worktree was needed; another isolated checkout can be created if further concurrent work needs it.
+- Used the installed Playwright Electron support for hidden-window UI validation instead of installing another browser driver. Manual native validation can be repeated if a platform-specific interaction differs.
+- Replied to startup terminal queries in the host only before any view is attached, since consumed queries cannot be recovered from a snapshot. Attached views continue to answer live queries; this routing is isolated in Session if later embedding requirements differ.
+- Retired only the verified stale pyenv runtime lock, preserving a backup at the path above. To undo, stop rehash processes first and restore that backup; no `.zshrc` or other shell configuration was edited.
+
+All final review findings were fixed. No deferred review findings. Work remains on the local `codex/terminal-toolkit` branch.

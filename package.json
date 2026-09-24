@@ -56,7 +56,8 @@
     "native:setup": "node scripts/setup-electron.mjs",
     "native": "node scripts/run-electron.mjs",
     "test:native": "playwright test --config playwright.electron.config.ts",
-    "native:pack": "node scripts/pack-native.mjs"
+    "native:pack": "node scripts/pack-native.mjs",
+    "test:native-package": "node scripts/verify-native.mjs"
   },
   "dependencies": {
     "@xterm/addon-fit": "0.12.0-beta.300",
