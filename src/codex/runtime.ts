@@ -47,7 +47,8 @@ export async function startCodexRuntime(
   let exited = false,
     closing = false,
     proxy: Awaited<ReturnType<typeof createCodexProxy>> | undefined;
-  let events = new CodexEvents(sessionId, "");
+  const events = new CodexEvents(sessionId, "");
+  const rootRequests = new Set<string | number>();
   let failed = false;
   const fail = (status = "backend-exited") => {
     if (!closing && !failed) {
@@ -106,15 +107,20 @@ export async function startCodexRuntime(
       child,
       (frame) => {
         clearTimeout(startupTimer);
-        if (frame.method === "thread/started" && !events.rootThreadId) {
-          const thread = record(record(frame.params).thread),
+        if (rootRequests.delete(frame.id)) {
+          const thread = record(record(frame.result).thread),
             id = thread.id;
           if (
             typeof id === "string" &&
             /^[\w-]{1,128}$/.test(id) &&
-            !record(thread.source).subagent
-          )
-            events = new CodexEvents(sessionId, id);
+            thread.threadSource !== "system"
+          ) {
+            // Only a response to this TUI's own start/resume/fork proves root ownership.
+            // Backend-created internal threads can have the same source as the TUI.
+            events.activateRoot(id);
+            for (const event of events.accept("thread/started", { thread }))
+              emit(event);
+          }
         }
         if (events.rootThreadId) {
           clearTimeout(startupTimer);
@@ -124,6 +130,19 @@ export async function startCodexRuntime(
         }
       },
       fail,
+      (frame) => {
+        if (
+          ["thread/start", "thread/resume", "thread/fork"].includes(
+            frame.method,
+          ) &&
+          record(frame.params).threadSource !== "system" &&
+          (typeof frame.id === "string" || typeof frame.id === "number")
+        ) {
+          if (rootRequests.size >= 128)
+            throw Error("Too many pending thread requests");
+          rootRequests.add(frame.id);
+        }
+      },
     );
     chmodSync(endpoint, 0o600);
     if (exited || failed)

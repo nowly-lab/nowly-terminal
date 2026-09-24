@@ -255,7 +255,8 @@ test("Codex profile launches PTY and restores structured activity after reload",
     ...process.env,
     TERMINAL_PROGRAM: "codex",
     TERMINAL_CWD: fixture,
-    SHELL: "/bin/sh",
+    SHELL: "/bin/zsh",
+    ZDOTDIR: fixture,
     TERMINAL_EXAMPLE_BACKGROUND: "1",
     TERMINAL_EXAMPLE_USER_DATA: join(fixture, "app"),
     TERMINAL_CODEX_EXECUTABLE: process.execPath,
@@ -271,6 +272,9 @@ test("Codex profile launches PTY and restores structured activity after reload",
   });
   try {
     const page = await app.firstWindow();
+    page.on("pageerror", (error) =>
+      console.error("Codex fixture renderer:", error.message),
+    );
     await expect(page.locator('[data-agent-kind="task.started"]')).toHaveCount(
       1,
     );
@@ -279,6 +283,10 @@ test("Codex profile launches PTY and restores structured activity after reload",
       1,
     );
     await expect(page.locator(".nt-agent-activity")).toContainText("Codex");
+  } catch (error) {
+    const page = await app.firstWindow();
+    console.error("Codex fixture UI:", await page.locator("body").innerText());
+    throw error;
   } finally {
     await app.close().catch(() => {});
     try {
@@ -351,6 +359,21 @@ test("live Codex task and subagent events appear in the native UI", async () => 
     await expect(
       page.locator('[data-agent-kind="task.completed"]'),
     ).toHaveCount(1);
+  } catch (error) {
+    const page = await app.firstWindow();
+    await page.screenshot({
+      path: "test-results/codex-native-failure.png",
+      fullPage: true,
+    });
+    console.error(
+      "Captured kinds:",
+      await page
+        .locator("[data-agent-kind]")
+        .evaluateAll((nodes) =>
+          nodes.map((n) => n.getAttribute("data-agent-kind")),
+        ),
+    );
+    throw error;
   } finally {
     await app.close().catch(() => {});
     const daemon = await connectTerminalDaemon(

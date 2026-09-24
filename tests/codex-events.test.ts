@@ -37,7 +37,7 @@ test("proven children retain their identity and terminal completion differs from
   const e = new CodexEvents("pane", "root");
   const child = {
     id: "child",
-    source: { subagent: { thread_spawn: { parent_thread_id: "root" } } },
+    source: { subAgent: { thread_spawn: { parent_thread_id: "root" } } },
   };
   expect(e.accept("thread/started", { thread: child })[0].kind).toBe(
     "subagent.spawned",
@@ -140,4 +140,52 @@ test("late child completion notification does not duplicate an observed wait res
       turn: { id: "next", status: "completed" },
     })[0].kind,
   ).toBe("subagent.completed");
+});
+
+test("root switches preserve history and classify old roots as tasks", () => {
+  const e = new CodexEvents("pane", "root");
+  e.accept("turn/started", { threadId: "root", turn: { id: "one" } });
+  e.activateRoot("next");
+  expect(e.accept("thread/started", { thread: { id: "next" } })[0].kind).toBe(
+    "session.started",
+  );
+  expect(
+    e.accept("turn/completed", {
+      threadId: "next",
+      turn: { id: "two", status: "completed" },
+    })[0],
+  ).toMatchObject({ kind: "task.completed", sequence: 3 });
+  expect(
+    e.accept("turn/completed", {
+      threadId: "root",
+      turn: { id: "one", status: "completed" },
+    })[0].kind,
+  ).toBe("task.completed");
+  expect(e.history[0].sequence).toBe(1);
+  for (let i = 0; i < 300; i++) e.activateRoot("root-" + i);
+  expect(e.threads.size).toBeLessThanOrEqual(128);
+  expect(e.threads.has("root-299")).toBe(true);
+});
+test("rejected children cannot bypass bounded ownership through wait results", () => {
+  const e = new CodexEvents("pane", "root");
+  for (let i = 0; i < 1000; i++) {
+    const child = "child-" + i;
+    const events = e.accept("item/completed", {
+      threadId: "root",
+      item: {
+        id: "wait-" + i,
+        type: "collabAgentToolCall",
+        receiverThreadIds: [child],
+        agentsStates: { [child]: { status: "completed" } },
+      },
+    });
+    expect(
+      events
+        .filter((x) => x.kind === "subagent.completed")
+        .every((x) => x.parentThreadId === "root"),
+    ).toBe(true);
+  }
+  expect(e.threads.size).toBe(128);
+  expect((e as any).childStatus.size).toBeLessThan(128);
+  expect(e.history.some((x) => x.threadId === "child-999")).toBe(false);
 });

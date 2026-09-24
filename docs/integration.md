@@ -51,7 +51,7 @@ React -> sandboxed preload IPC -> Electron main / DaemonClient
                               independent daemon -> PTY -> shell
 ```
 
-Native integration opens no TCP listener or WebSocket server. Run `pnpm native:setup`, then `pnpm native`. Normal quit disconnects only; reopening restores the same shell PID, variables and output, including output generated while the UI was closed. Closing a pane terminates its shell. The main-process Stop all terminals menu explicitly stops the daemon and every shell. The sample persists its layout in userData.
+Native integration opens no TCP listener. Shell mode uses only native IPC and the daemon socket; Codex mode additionally uses a private Unix WebSocket proxy. Run `pnpm native:setup`, then `pnpm native`. Normal quit disconnects only; reopening restores the same shell PID, variables and output, including output generated while the UI was closed. Closing a pane terminates its shell. The main-process Stop all terminals menu explicitly stops the daemon and every shell. The sample persists its layout in userData.
 
 The IPC bridge validates sender/window/top-frame/file URL, permits only public terminal methods and fences reloads. The preload exposes request/subscribe/onStatus, never credentials or daemon administration. nodeIntegration stays false, contextIsolation and sandbox stay true. Neither the renderer nor the main-process daemon client imports node-pty.
 
@@ -167,3 +167,7 @@ Each agent event contains provider=codex, sessionId, sequence, timestamp, kind a
 The daemon stores the most recent200 agent events per terminal. On snapshot, replace that terminal's replay window and deduplicate live events by sessionId+sequence. Sequence is independent of terminal output sequence and resets with a new terminal instance. This is an in-memory bounded event feed, not a durable exactly-once queue. Persist the events in your application if a full audit history is required. Prompts, raw tool results, plugin definitions and credentials are not copied into the agent event feed. The TUI necessarily receives its normal protocol content. Backend frames are bounded at64MiB to accommodate large Codex plugin catalogs; event metadata remains small.
 
 Version0.2.0 changes direct `TerminalHost.create` to return Promise<SessionInfo>. Await it before writing, attaching or inspecting sessions. The transport API was already asynchronous and is unchanged. `pnpm test:codex` explicitly runs a real read-only model task with one delegated child; it is not part of the normal unit test suite. `NOWLY_LIVE_CODEX=1 pnpm test:native --grep 'live Codex'` verifies the actual native UI.
+
+Codex mode is verified with zsh (normal user initialization) and a controlled bash initialization fixture. Use zsh/bash for the native sample. macOS `/bin/sh -il` in the verified environment closes inherited protocol file descriptors and is not supported for Codex mode; startup scripts must preserve inherited descriptors. This limitation does not affect shell-only mode.
+
+Thread switching preserves the per-terminal event sequence and the last 200 events. Ownership tracking is capped at 128 threads; extra children beyond that bound are ignored. When a new root needs capacity, the oldest ownership subtree is evicted together. This event feed is a bounded activity view, not an audit log.

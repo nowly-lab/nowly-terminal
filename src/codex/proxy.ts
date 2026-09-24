@@ -8,6 +8,7 @@ export async function createCodexProxy(
   child: ChildProcessWithoutNullStreams,
   onFrame: (frame: Record<string, any>) => void,
   onError: (status: string) => void,
+  onRequest: (frame: Record<string, any>) => void = () => {},
 ) {
   const http = createServer((_req, res) => {
     res.writeHead(404);
@@ -49,6 +50,7 @@ export async function createCodexProxy(
         if (failed) return;
         const frame = record(JSON.parse(bytes.toString()));
         if (!frame.method && frame.id === undefined) throw Error();
+        onRequest(frame);
         child.stdin.write(JSON.stringify(frame) + "\n");
       } catch {
         fail("invalid-client-frame");

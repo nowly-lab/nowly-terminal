@@ -24,39 +24,41 @@
 ## Task 1: Event contract and normalizer
 Files: src/codex/events.ts; src/protocol.ts; tests/codex-events.test.ts.
 Interfaces: AgentEvent is a TerminalEvent with `type: 'agent'`, provider codex, kind, timestamp, sequence, sessionId, threadId, optional turnId/agentId/tool/status. CodexEvents accepts a root thread, normalizes notifications and owns bounded replay plus known-child tracking.
-- [ ] Add failing normalization tests for parent start/completed/failed/interrupted, child ownership/completion, duplicate items, unknown methods and history cap.
+- [x] Add failing normalization tests for parent start/completed/failed/interrupted, child ownership/completion, duplicate items, unknown methods and history cap.
 ```ts
 expect(events.accept('turn/completed', {threadId: root, turn: {id: 't', status: 'failed'}})[0].kind).toBe('task.failed');
 ```
-- [ ] Implement normalizer with allowlisted metadata only, monotonic sequence and snapshot history capped at 200 events.
-- [ ] Run targeted Vitest tests; commit contract and normalizer.
+- [x] Implement normalizer with allowlisted metadata only, monotonic sequence and snapshot history capped at 200 events.
+- [x] Run targeted Vitest tests; commit contract and normalizer.
 
 ## Task 2: Sidecar and PTY lifecycle
-Files: src/codex/rpc.ts, src/codex/runtime.ts; src/server/{host,session}.ts; src/daemon/{server,client}.ts; src/{client,protocol}.ts; tests/codex-runtime.test.ts and existing host tests; tests/fixtures/codex-server.mjs.
-Interfaces: startCodexRuntime(options, spawnOptions, emit) resolves threadId, PTY command/args and dispose(). HostOptions.codex selects executable/prompt/config, trusted only. Host.create returns Promise<SessionInfo>, deduplicates pending creation, and disposes in-flight startup before shutdown succeeds.
-- [ ] Add failing tests using a deterministic fake executable: fragmented RPC response, failed initialize, oversized frame, child exit, duplicate create and failed PTY launch cleanup.
+Files: src/codex/proxy.ts, src/codex/runtime.ts; src/server/{host,session}.ts; src/daemon/{server,client}.ts; src/{client,protocol}.ts; tests/codex-runtime.test.ts and existing host tests; tests/fixtures/codex-server.mjs.
+Interfaces: startCodexRuntime(options, spawnOptions, emit) resolves private endpoint, PTY command/args, event history and dispose(). HostOptions.codex selects executable/prompt/config, trusted only. Host.create returns Promise<SessionInfo>, deduplicates pending creation, and disposes in-flight startup before shutdown succeeds.
+- [x] Add failing tests using a deterministic fake executable: fragmented RPC response, failed initialize, oversized frame, child exit, duplicate create and disposal during pending startup.
 ```ts
 const [a,b] = await Promise.all([host.create({id:'one'}),host.create({id:'one'})]);
 expect(a.pid).toBe(b.pid);
 await host.dispose();
 ```
-- [ ] Launch app-server through POSIX login shell (`exec` plus individually shell-quoted arguments), private short0700 socket directory, max frame8MiB, pending32, request timeout15s. Initialize then thread/start. PTY execs Codex remote resume with optional initial prompt; no auto-approval flags. Subscriptions only proven descendant threads; reconcile completed child on resume where required. Dispose rejects pending RPC and stops owned child with bounded SIGTERM/SIGKILL.
-- [ ] Session retains lifecycle events and snapshot replay; runtime cleanup is tied to PTY exit/explicit close. Migrate Host.create callers, preserve transport channels, forward agent frames.
-- [ ] Run typecheck/full unit suite and a temporary real TUI connection probe; commit.
+- [x] Launch app-server through POSIX login shell (`exec` plus individually shell-quoted arguments), private short0700 socket directory, backend frame64MiB/input8MiB with a30s startup deadline, as ruled after live CLI evidence. A transparent Unix WebSocket-to-stdio proxy lets the TUI initialize/create its own thread; PTY execs Codex remote with optional initial prompt. Approval requests/responses pass through unchanged. Track only proven descendant threads; use collaboration states for completion fallback. Dispose closes proxy connections and stops owned child with bounded SIGTERM/SIGKILL.
+- [x] Session retains lifecycle events and snapshot replay; runtime cleanup is tied to PTY exit/explicit close. Migrate Host.create callers, preserve transport channels, forward agent frames.
+- [x] Run typecheck/full unit suite and a temporary real TUI connection probe; commit.
 
 ## Task 3: Examples and actual delegated task capture
-Files: examples/electron/{main.cjs,src/main.tsx,src/styles.css}; examples/react/{demo-host,main}.tsx/ts; scripts/verify-codex.mjs; tests/electron.spec.ts; tests/codex.electron.spec.ts; docs/evidence/codex-events.json.
-- [ ] Select shell mode explicitly in existing native tests. Add UI fixture test for event replay/history; confirm failing before UI implementation.
-- [ ] Default native to Codex with separate mode-specific runtimeDir/layout; browser opts in with TERMINAL_PROGRAM=codex. Add bounded event list; subscribe and deduplicate live and snapshot events.
+Files: examples/electron/{main.cjs,src/main.tsx,src/styles.css}; examples/react/{demo-host,main}.tsx/ts; scripts/verify-codex.mjs; tests/electron.spec.ts; docs/evidence/codex-events.json.
+- [x] Select shell mode explicitly in existing native tests. Add UI fixture test for event replay/history; confirm failing before UI implementation.
+- [x] Default native to Codex with separate mode-specific runtimeDir/layout; browser opts in with TERMINAL_PROGRAM=codex. Add bounded event list; subscribe and deduplicate live and snapshot events.
 ```ts
 transport.subscribe(event => { if(event.type === 'agent') add(event); if(event.type === 'snapshot') merge(event.snapshot.agentEvents ?? []); });
 ```
-- [ ] Run actual Codex read-only smoke with one child, capture normalized metadata only, await task.completed and subagent completion; inspect screenshot and verify local command evidence. Fail visibly if auth/model/protocol unavailable, never synthesize results.
-- [ ] Commit sample, script and evidence.
+- [x] Run actual Codex read-only smoke with one child, capture normalized metadata only, await task.completed and subagent completion; inspect screenshot and verify local command evidence. Fail visibly if auth/model/protocol unavailable, never synthesize results.
+- [x] Commit sample, script and evidence.
 
 ## Task 4: Distribution and final review
 Files: package.json, native example dependency/lock, README/docs/integration.md/docs/verification.md.
-- [ ] Bump0.2.0; document async create, Codex options, event mapping, replay window, native launch and limitations with official app-server documentation link.
-- [ ] Run typecheck/unit, browser, isolated packaged consumer and native archive verification sequentially where builds/test artifacts collide.
-- [ ] One independent whole-change review under executing-plans; reproduce/fix actionable findings and recheck affected tests once.
-- [ ] Commit final docs/source and keep branch local; clean only this plan ledger after durable verification record.
+- [x] Bump0.2.0; document async create, Codex options, event mapping, replay window, native launch and limitations with official app-server documentation link.
+- [x] Run typecheck/unit, browser, isolated packaged consumer and native archive verification sequentially where builds/test artifacts collide.
+- [x] One independent whole-change review under executing-plans; reproduce/fix actionable findings and recheck affected tests once.
+- [x] Commit final docs/source and keep branch local; clean only this plan ledger after durable verification record.
+
+Implementation rulings and live evidence are recorded in docs/verification.md and the spec; the original observer/resume approach was replaced after the installed CLI rejected empty-thread resume.

@@ -16,9 +16,25 @@ export class CodexEvents {
   private childStatus = new Map<string, string>();
   constructor(
     private sessionId: string,
-    readonly rootThreadId: string,
+    public rootThreadId: string,
   ) {
-    this.threads.set(rootThreadId, undefined);
+    if (rootThreadId) this.threads.set(rootThreadId, undefined);
+  }
+  /** Only the dedicated TUI runtime may register a new top-level thread. */
+  activateRoot(id: string) {
+    if (this.threads.get(id)) return;
+    if (!this.threads.has(id) && this.threads.size >= 128) {
+      // Evict the oldest ownership subtree together; never retain orphan children.
+      const remove = new Set([this.threads.keys().next().value!]);
+      for (const [thread, parent] of this.threads)
+        if (parent && remove.has(parent)) remove.add(thread);
+      for (const thread of remove) {
+        this.threads.delete(thread);
+        this.childStatus.delete(thread);
+      }
+    }
+    this.threads.set(id, undefined);
+    this.rootThreadId = id;
   }
   private add(
     key: string,
@@ -64,17 +80,22 @@ export class CodexEvents {
     if (method === "thread/started") {
       const id = str(thread.id),
         parent = str(
-          record(record(record(thread.source).subagent).thread_spawn)
-            .parent_thread_id,
+          thread.parentThreadId ??
+            record(
+              record(
+                record(thread.source).subAgent ??
+                  record(thread.source).subagent,
+              ).thread_spawn,
+            ).parent_thread_id,
         );
       if (!id) return [];
-      if (id === this.rootThreadId)
+      if (this.threads.has(id) && this.threads.get(id) === undefined)
         return this.add(`session:${id}`, "session.started", id);
       return parent && this.threads.has(parent) ? this.child(id, parent) : [];
     }
     const id = str(p.threadId);
     if (!id || !this.threads.has(id)) return [];
-    const child = id !== this.rootThreadId,
+    const child = this.threads.get(id) !== undefined,
       prefix = child ? "subagent" : "task";
     if (method === "turn/started" || method === "turn/completed") {
       const turn = record(p.turn),
@@ -118,6 +139,7 @@ export class CodexEvents {
           : []) {
           if (!str(agent)) continue;
           result.push(...this.child(agent, id));
+          if (!this.threads.get(agent)) continue;
           const state = str(record(record(item.agentsStates)[agent]).status);
           if (
             state &&

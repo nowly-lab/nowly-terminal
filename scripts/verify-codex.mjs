@@ -34,7 +34,8 @@ try {
       }
     if (
       captured.some((e) => e.kind === "task.completed") &&
-      captured.some((e) => e.kind === "subagent.completed")
+      captured.some((e) => e.kind === "subagent.completed") &&
+      /CODEX_CAPTURE_OK\s*[:=-]?\s*42/.test(stripVTControlCharacters(screen))
     )
       break;
     if (

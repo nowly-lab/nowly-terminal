@@ -3,7 +3,8 @@ import WebSocket from "ws";
 if (process.argv.includes("app-server")) {
   if (process.env.FAKE_PID_FILE)
     writeFileSync(process.env.FAKE_PID_FILE, String(process.pid));
-  let carry = "";
+  let carry = "",
+    threads = 0;
   process.stdin.on("data", (chunk) => {
     carry += chunk;
     let at;
@@ -17,11 +18,17 @@ if (process.argv.includes("app-server")) {
         continue;
       }
       if (process.env.FAKE_MODE === "timeout") continue;
+      const threadId =
+        frame.method === "thread/start"
+          ? ++threads === 1
+            ? "test-root"
+            : `test-root-${threads}`
+          : "";
       const result =
         frame.method === "big"
           ? { blob: "x".repeat(9 * 1024 * 1024) }
           : frame.method === "thread/start"
-            ? { thread: { id: "test-root" } }
+            ? { thread: { id: threadId } }
             : {};
       const out =
         JSON.stringify(
@@ -32,10 +39,32 @@ if (process.argv.includes("app-server")) {
       process.stdout.write(out.slice(0, 5));
       process.stdout.write(out.slice(5));
       if (frame.method === "thread/start") {
+        if (process.env.FAKE_MODE === "internal") {
+          process.stdout.write(
+            JSON.stringify({
+              method: "thread/started",
+              params: {
+                thread: {
+                  id: "internal-thread",
+                  source: "vscode",
+                },
+              },
+            }) + "\n",
+          );
+          process.stdout.write(
+            JSON.stringify({
+              method: "turn/completed",
+              params: {
+                threadId: "internal-thread",
+                turn: { id: "internal-turn", status: "completed" },
+              },
+            }) + "\n",
+          );
+        }
         process.stdout.write(
           JSON.stringify({
             method: "thread/started",
-            params: { thread: { id: "test-root", source: "cli" } },
+            params: { thread: { id: threadId, source: "vscode" } },
           }) + "\n",
         );
         setTimeout(
@@ -44,7 +73,7 @@ if (process.argv.includes("app-server")) {
               JSON.stringify({
                 method: "turn/started",
                 params: {
-                  threadId: "test-root",
+                  threadId,
                   turn: { id: "turn", status: "inProgress" },
                 },
               }) + "\n",

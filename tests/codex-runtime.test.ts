@@ -168,3 +168,81 @@ test("backend death closes the TUI connection rather than leaving a frozen termi
     await runtime.dispose();
   }
 });
+
+test("TUI can start another root without losing lifecycle capture or replay", async () => {
+  const received: any[] = [];
+  const runtime = await startCodexRuntime(
+    { executable, args },
+    shell,
+    "pane",
+    (e) => received.push(e),
+  );
+  try {
+    const rpc = await CodexRpc.connect(runtime.endpoint);
+    await rpc.request("initialize", {});
+    await rpc.request("thread/start", {});
+    await expect
+      .poll(() => received.filter((e) => e.kind === "task.started").length)
+      .toBe(1);
+    await rpc.request("thread/start", {});
+    await expect
+      .poll(() => received.filter((e) => e.kind === "task.started").length)
+      .toBe(2);
+    expect(runtime.events.history.map((e) => e.sequence)).toEqual([1, 2, 3, 4]);
+    expect(received.at(-1).threadId).toBe("test-root-2");
+    rpc.dispose();
+  } finally {
+    await runtime.dispose();
+  }
+});
+
+test("internal Codex work cannot switch the root or report user task completion", async () => {
+  const received: any[] = [];
+  const runtime = await startCodexRuntime(
+    { executable, args },
+    { ...shell, env: { ...shell.env, FAKE_MODE: "internal" } },
+    "pane",
+    (e) => received.push(e),
+  );
+  try {
+    const rpc = await CodexRpc.connect(runtime.endpoint);
+    await rpc.request("initialize", {});
+    await rpc.request("thread/start", {});
+    await expect
+      .poll(() => received.some((e) => e.kind === "task.started"))
+      .toBe(true);
+    expect(received.some((e) => e.threadId === "internal-thread")).toBe(false);
+    expect(received.some((e) => e.kind === "task.completed")).toBe(false);
+    rpc.dispose();
+  } finally {
+    await runtime.dispose();
+  }
+});
+
+test("TUI system threads for title generation cannot complete a user task", async () => {
+  const received: any[] = [];
+  const runtime = await startCodexRuntime(
+    { executable, args },
+    shell,
+    "pane",
+    (e) => received.push(e),
+  );
+  try {
+    const rpc = await CodexRpc.connect(runtime.endpoint);
+    await rpc.request("initialize", {});
+    await rpc.request("thread/start", { threadSource: "user" });
+    await expect
+      .poll(() => received.filter((e) => e.kind === "task.started").length)
+      .toBe(1);
+    await rpc.request("thread/start", {
+      threadSource: "system",
+      ephemeral: true,
+    });
+    await new Promise((r) => setTimeout(r, 60));
+    expect(received.some((e) => e.threadId === "test-root-2")).toBe(false);
+    expect(runtime.events.rootThreadId).toBe("test-root");
+    rpc.dispose();
+  } finally {
+    await runtime.dispose();
+  }
+});
